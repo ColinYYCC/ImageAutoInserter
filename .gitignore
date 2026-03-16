@@ -35,10 +35,6 @@ Thumbs.db
 
 # Sample data (large files)
 Sample/
-*.jpg
-*.jpeg
-*.png
-*.gif
 *.zip
 *.rar
 *.7z
@@ -79,31 +75,8 @@ test-archives.js
 project/
 file_organizer/
 
-# Documentation archives and plans
-docs/archive/
-docs/plans/
-docs/superpowers/
-docs/design/color-options/
-docs/design/gui-redesign/
-docs/design/implementation/
-docs/testing/
-docs/reports/
-docs/guides/BROWSER-TESTING.md
-docs/guides/react-performance.md
-docs/guides/technology-comparison.md
-docs/guides/terminology-zh-en.md
-docs/guides/version-control.md
-docs/ALIGNMENT_*.md
-docs/CONSENSUS_*.md
-docs/DESIGN_*.md
-docs/TASK_*.md
-docs/FINAL_*.md
-docs/TEST_REPORT.md
-docs/TROUBLESHOOTING.md
-docs/ADAPTIVE_FILE_PROCESSING.md
-docs/ARCHITECTURE_FRAMEWORK.md
-docs/DESIGN_PROPOSALS_6_THEMES.md
-docs/MIGRATION_GUIDE.md
+# Documentation (all docs are development-only)
+docs/
 
 # Scripts (development only)
 scripts/generate-icons-from-source.js
@@ -126,3 +99,11 @@ PICTURE_VARIANT_COMPLETE_GUIDE.md
 INTEGRATION_REPORT.md
 DEPLOY.md
 CHANGELOG.md
+
+# Source code temp/test files
+src/core/core_temp
+src/main/main.minimal.ts
+src/renderer/test.html
+src/renderer/components/RobotLoaderTest.tsx
+src/shared/types.js
+src/shared/types.d.ts
