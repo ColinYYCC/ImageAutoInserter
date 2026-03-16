@@ -68,6 +68,7 @@ temp/
 .packignore
 skills-lock.json
 test-archives.js
+.python-version
 
 # Trae AI specific (development only)
 .trae/
@@ -110,6 +111,15 @@ scripts/generate-icons.js
 install-ecc.sh
 install-superpowers.sh
 organizer
+
+# Design reference images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.psd
+*.ai
+*.sketch
 
 # Legacy/Complete guides
 PICTURE_VARIANT_COMPLETE_GUIDE.md
