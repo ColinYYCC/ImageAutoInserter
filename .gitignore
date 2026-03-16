@@ -70,9 +70,7 @@ skills-lock.json
 test-archives.js
 
 # Trae AI specific (development only)
-.trae/skills/
-.trae/agents/
-.trae/specs/
+.trae/
 .self-improving/
 .organized/
 
