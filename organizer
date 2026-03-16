@@ -1,0 +1,5 @@
+#!/bin/bash
+# organizer - File Organizer CLI
+
+cd "$(dirname "$0")"
+python -m file_organizer "$@"

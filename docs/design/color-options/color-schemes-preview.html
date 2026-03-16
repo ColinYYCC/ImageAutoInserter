@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配色方案预览 - 图片自动插入工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+        
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .option-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .option-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+        
+        .preview-header {
+            padding: 24px;
+            text-align: center;
+        }
+        
+        .option-a .preview-header {
+            background: linear-gradient(135deg, #7A8B9E 0%, #9A8C9E 100%);
+        }
+        
+        .option-b .preview-header {
+            background: linear-gradient(135deg, #0D9488 0%, #14B8A6 100%);
+        }
+        
+        .option-c .preview-header {
+            background: linear-gradient(135deg, #0D9488 0%, #7A8B9E 100%);
+        }
+        
+        .preview-title {
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .preview-subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: 14px;
+        }
+        
+        .preview-body {
+            padding: 24px;
+        }
+        
+        /* Option A - 莫兰迪色系 */
+        .option-a {
+            --primary: #7A8B9E;
+            --primary-light: #94A3B8;
+            --primary-dark: #5F6D7A;
+            --accent: #B8A8A0;
+            --bg-primary: #F5F5F3;
+            --bg-secondary: #FAFAF9;
+            --text-primary: #3D3D3D;
+            --text-secondary: #6B6B6B;
+            --border: #E6E6E3;
+        }
+        
+        /* Option B - 青绿色系 */
+        .option-b {
+            --primary: #0D9488;
+            --primary-light: #14B8A6;
+            --primary-dark: #0F766E;
+            --accent: #F97316;
+            --bg-primary: #F0FDFA;
+            --bg-secondary: #FFFFFF;
+            --text-primary: #134E4A;
+            --text-secondary: #475569;
+            --border: #E2E8F0;
+        }
+        
+        /* Option C - 融合方案 */
+        .option-c {
+            --primary: #0D9488;
+            --primary-light: #14B8A6;
+            --primary-dark: #5F6D7A;
+            --accent: #B8A8A0;
+            --bg-primary: #F5F5F3;
+            --bg-secondary: #FFFFFF;
+            --text-primary: #3D3D3D;
+            --text-secondary: #6B6B6B;
+            --border: #E6E6E3;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            font-size: 24px;
+        }
+        
+        .option-a .feature-icon {
+            background: linear-gradient(135deg, #7A8B9E, #94A3B8);
+        }
+        
+        .option-b .feature-icon {
+            background: linear-gradient(135deg, #0D9488, #14B8A6);
+        }
+        
+        .option-c .feature-icon {
+            background: linear-gradient(135deg, #0D9488, #94A3B8);
+        }
+        
+        .feature-text {
+            flex: 1;
+        }
+        
+        .feature-title {
+            color: var(--text-primary);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .feature-desc {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+        
+        .color-swatch {
+            height: 60px;
+            border-radius: 6px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .pros-cons {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+        
+        .pros {
+            margin-bottom: 12px;
+        }
+        
+        .pros-title {
+            color: #10B981;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .pros-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .pros-list li {
+            color: var(--text-secondary);
+            font-size: 13px;
+            padding: 4px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .pros-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10B981;
+        }
+        
+        .cons-title {
+            color: #EF4444;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .cons-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .cons-list li {
+            color: var(--text-secondary);
+            font-size: 13px;
+            padding: 4px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .cons-list li:before {
+            content: "✗";
+            position: absolute;
+            left: 0;
+            color: #EF4444;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 40px;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .comparison-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .comparison-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #E6E6E3;
+            color: #3D3D3D;
+        }
+        
+        .comparison-table tr:hover {
+            background: #F5F5F3;
+        }
+        
+        .recommendation {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 32px;
+            border-radius: 16px;
+            margin-top: 40px;
+            text-align: center;
+        }
+        
+        .recommendation h2 {
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+        
+        .recommendation p {
+            font-size: 16px;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 配色方案预览</h1>
+        
+        <div class="options-grid">
+            <!-- Option A: 莫兰迪色系 -->
+            <div class="option-card option-a">
+                <div class="preview-header">
+                    <div class="preview-title">方案 A - 莫兰迪色系</div>
+                    <div class="preview-subtitle">柔和 · 高级感 · 温暖</div>
+                </div>
+                <div class="preview-body">
+                    <div class="feature-item">
+                        <div class="feature-icon">📁</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Excel 文件拖拽区</div>
+                            <div class="feature-desc">拖拽 Excel 文件到此处</div>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">🖼️</div>
+                        <div class="feature-text">
+                            <div class="feature-title">图片源选择</div>
+                            <div class="feature-desc">文件夹 / ZIP / RAR</div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 16px;">
+                        开始处理
+                    </button>
+                    
+                    <div class="color-palette">
+                        <div class="color-swatch" style="background: #7A8B9E;" title="主色"></div>
+                        <div class="color-swatch" style="background: #94A3B8;" title="浅蓝"></div>
+                        <div class="color-swatch" style="background: #B8A8A0;" title="粉褐"></div>
+                        <div class="color-swatch" style="background: #F5F5F3;" title="背景"></div>
+                        <div class="color-swatch" style="background: #3D3D3D;" title="文字"></div>
+                    </div>
+                    
+                    <div class="pros-cons">
+                        <div class="pros">
+                            <div class="pros-title">优点</div>
+                            <ul class="pros-list">
+                                <li>柔和温暖，视觉舒适</li>
+                                <li>高级灰质感，提升品质感</li>
+                                <li>适合长时间使用</li>
+                                <li>符合现代审美趋势</li>
+                            </ul>
+                        </div>
+                        <div class="cons">
+                            <div class="pros-title">缺点</div>
+                            <ul class="cons-list">
+                                <li>对比度较低，不够醒目</li>
+                                <li>可能显得过于沉稳</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Option B: 青绿色系 -->
+            <div class="option-card option-b">
+                <div class="preview-header">
+                    <div class="preview-title">方案 B - 青绿色系</div>
+                    <div class="preview-subtitle">清新 · 活力 · 专业</div>
+                </div>
+                <div class="preview-body">
+                    <div class="feature-item">
+                        <div class="feature-icon">📁</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Excel 文件拖拽区</div>
+                            <div class="feature-desc">拖拽 Excel 文件到此处</div>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">🖼️</div>
+                        <div class="feature-text">
+                            <div class="feature-title">图片源选择</div>
+                            <div class="feature-desc">文件夹 / ZIP / RAR</div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 16px;">
+                        开始处理
+                    </button>
+                    
+                    <div class="color-palette">
+                        <div class="color-swatch" style="background: #0D9488;" title="主色"></div>
+                        <div class="color-swatch" style="background: #14B8A6;" title="浅青绿"></div>
+                        <div class="color-swatch" style="background: #F97316;" title="橙色"></div>
+                        <div class="color-swatch" style="background: #F0FDFA;" title="背景"></div>
+                        <div class="color-swatch" style="background: #134E4A;" title="文字"></div>
+                    </div>
+                    
+                    <div class="pros-cons">
+                        <div class="pros">
+                            <div class="pros-title">优点</div>
+                            <ul class="pros-list">
+                                <li>清新活力，视觉冲击力强</li>
+                                <li>高对比度，可读性好</li>
+                                <li>符合工具类应用定位</li>
+                                <li>专业感和科技感</li>
+                            </ul>
+                        </div>
+                        <div class="cons">
+                            <div class="pros-title">缺点</div>
+                            <ul class="cons-list">
+                                <li>可能过于鲜艳</li>
+                                <li>长时间使用可能视觉疲劳</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Option C: 融合方案 -->
+            <div class="option-card option-c">
+                <div class="preview-header">
+                    <div class="preview-title">方案 C - 融合方案</div>
+                    <div class="preview-subtitle">平衡 · 现代 · 精致</div>
+                </div>
+                <div class="preview-body">
+                    <div class="feature-item">
+                        <div class="feature-icon">📁</div>
+                        <div class="feature-text">
+                            <div class="feature-title">Excel 文件拖拽区</div>
+                            <div class="feature-desc">拖拽 Excel 文件到此处</div>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">🖼️</div>
+                        <div class="feature-text">
+                            <div class="feature-title">图片源选择</div>
+                            <div class="feature-desc">文件夹 / ZIP / RAR</div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 16px;">
+                        开始处理
+                    </button>
+                    
+                    <div class="color-palette">
+                        <div class="color-swatch" style="background: #0D9488;" title="主色"></div>
+                        <div class="color-swatch" style="background: #94A3B8;" title="灰蓝"></div>
+                        <div class="color-swatch" style="background: #B8A8A0;" title="粉褐"></div>
+                        <div class="color-swatch" style="background: #F5F5F3;" title="背景"></div>
+                        <div class="color-swatch" style="background: #3D3D3D;" title="文字"></div>
+                    </div>
+                    
+                    <div class="pros-cons">
+                        <div class="pros">
+                            <div class="pros-title">优点</div>
+                            <ul class="pros-list">
+                                <li>结合两种方案的优势</li>
+                                <li>青绿色主色提升活力</li>
+                                <li>莫兰迪背景保持柔和</li>
+                                <li>平衡视觉冲击和舒适度</li>
+                            </ul>
+                        </div>
+                        <div class="cons">
+                            <div class="pros-title">缺点</div>
+                            <ul class="cons-list">
+                                <li>需要精细调色确保和谐</li>
+                                <li>设计难度较高</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 对比表格 -->
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>对比维度</th>
+                    <th>方案 A - 莫兰迪</th>
+                    <th>方案 B - 青绿色</th>
+                    <th>方案 C - 融合</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>主色调</strong></td>
+                    <td>雾霾蓝灰 (#7A8B9E)</td>
+                    <td>青绿色 (#0D9488)</td>
+                    <td>青绿 + 灰蓝 (#0D9488 + #94A3B8)</td>
+                </tr>
+                <tr>
+                    <td><strong>背景色</strong></td>
+                    <td>暖灰白 (#F5F5F3)</td>
+                    <td>冷白 (#F0FDFA)</td>
+                    <td>暖灰白 (#F5F5F3)</td>
+                </tr>
+                <tr>
+                    <td><strong>视觉风格</strong></td>
+                    <td>柔和温暖</td>
+                    <td>清新活力</td>
+                    <td>平衡现代</td>
+                </tr>
+                <tr>
+                    <td><strong>适用场景</strong></td>
+                    <td>长时间使用</td>
+                    <td>工具效率</td>
+                    <td>综合场景</td>
+                </tr>
+                <tr>
+                    <td><strong>用户群体</strong></td>
+                    <td>偏好质感用户</td>
+                    <td>偏好效率用户</td>
+                    <td>大众用户</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="recommendation">
+            <h2>💡 推荐方案</h2>
+            <p>
+                <strong>方案 C (融合方案)</strong> - 结合了莫兰迪色系的柔和质感和青绿色的活力感。<br>
+                主色使用青绿色提升视觉冲击力和专业感，背景和辅助色保留莫兰迪的柔和特质，<br>
+                既保证了工具应用的专业性，又兼顾了长时间使用的舒适度。
+            </p>
+        </div>
+    </div>
+</body>
+</html>

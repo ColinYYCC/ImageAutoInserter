@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>方案 7 - Blue Trust | 图片自动插入工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #2563EB;
+            --primary-light: #3B82F6;
+            --primary-dark: #1D4ED8;
+            --accent: #F97316;
+            --bg: #F8FAFC;
+            --bg-card: #FFFFFF;
+            --text: #1E293B;
+            --text-light: #475569;
+            --border: #E2E8F0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #F8FAFC 0%, #E8ECF1 100%);
+            min-height: 100vh;
+            padding: 60px 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* 页面头部 */
+        .page-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .page-header h1 {
+            font-size: 42px;
+            font-weight: 300;
+            color: var(--text);
+            letter-spacing: 3px;
+            margin-bottom: 12px;
+        }
+        
+        .page-header p {
+            font-size: 16px;
+            color: var(--text-light);
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+        
+        .scheme-badge {
+            display: inline-block;
+            padding: 8px 24px;
+            background: var(--primary);
+            color: white;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-top: 16px;
+            letter-spacing: 1px;
+        }
+        
+        /* 配色展示区 */
+        .palette-section {
+            background: white;
+            border-radius: 8px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        
+        .palette-section h2 {
+            font-size: 24px;
+            font-weight: 400;
+            color: var(--text);
+            margin-bottom: 30px;
+            letter-spacing: 1.5px;
+        }
+        
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+        
+        .color-card {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+        
+        .color-card:hover {
+            transform: translateY(-4px);
+        }
+        
+        .color-preview {
+            height: 120px;
+        }
+        
+        .color-info {
+            padding: 16px;
+            background: white;
+            text-align: center;
+        }
+        
+        .color-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+        
+        .color-hex {
+            font-size: 12px;
+            color: var(--text-light);
+            font-family: monospace;
+        }
+        
+        /* 组件展示区 */
+        .components-section {
+            background: white;
+            border-radius: 8px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        
+        .components-section h2 {
+            font-size: 24px;
+            font-weight: 400;
+            color: var(--text);
+            margin-bottom: 30px;
+            letter-spacing: 1.5px;
+        }
+        
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+        }
+        
+        /* 卡片组件 */
+        .card {
+            background: var(--bg);
+            border-radius: 6px;
+            padding: 32px;
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 1px solid var(--border);
+        }
+        
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+            border-color: var(--primary);
+        }
+        
+        .card-icon {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 24px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        }
+        
+        .card-icon svg {
+            width: 32px;
+            height: 32px;
+            stroke: white;
+            stroke-width: 1.5;
+            fill: none;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+        
+        .card-desc {
+            font-size: 14px;
+            color: var(--text-light);
+            line-height: 1.7;
+            font-weight: 300;
+        }
+        
+        /* 按钮组 */
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 14px 28px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        /* 输入框 */
+        .input-group {
+            margin-top: 20px;
+        }
+        
+        .input-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        
+        .input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        .input:focus {
+            outline: none;
+            border-color: var(--primary);
+            border-width: 2px;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        /* 进度条 */
+        .progress-section {
+            margin-top: 24px;
+        }
+        
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            width: 65%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        /* 徽章 */
+        .badge-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .badge {
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-success {
+            background: #22C55E;
+            color: white;
+        }
+        
+        .badge-warning {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .badge-info {
+            background: var(--border);
+            color: var(--text);
+        }
+        
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            padding: 24px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-light);
+            font-weight: 400;
+        }
+        
+        /* 应用预览 */
+        .app-preview-section {
+            background: white;
+            border-radius: 8px;
+            padding: 50px;
+            margin-top: 40px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        
+        .app-preview-section h2 {
+            font-size: 24px;
+            font-weight: 400;
+            color: var(--text);
+            margin-bottom: 30px;
+            letter-spacing: 1.5px;
+        }
+        
+        .app-window {
+            background: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        
+        .app-titlebar {
+            background: var(--bg);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .app-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .app-dot.red { background: #FF5F56; }
+        .app-dot.yellow { background: #FFBD2E; }
+        .app-dot.green { background: #27C93F; }
+        
+        .app-title {
+            flex: 1;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+        
+        .app-content {
+            padding: 40px;
+        }
+        
+        .app-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+        
+        .app-logo {
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .app-logo svg {
+            width: 28px;
+            height: 28px;
+            stroke: white;
+            stroke-width: 1.5;
+            fill: none;
+        }
+        
+        .app-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .drop-zones {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 48px 24px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .drop-zone:hover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+        
+        .drop-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            opacity: 0.4;
+        }
+        
+        .drop-zone:hover .drop-icon {
+            opacity: 1;
+        }
+        
+        .drop-title {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        
+        .drop-desc {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+        
+        .app-footer {
+            display: flex;
+            gap: 16px;
+            margin-top: 32px;
+        }
+        
+        .btn-block {
+            flex: 1;
+            padding: 16px;
+            font-size: 15px;
+        }
+        
+        /* 特性列表 */
+        .features-section {
+            background: white;
+            border-radius: 8px;
+            padding: 40px;
+            margin-top: 40px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        
+        .features-section h2 {
+            font-size: 24px;
+            font-weight: 400;
+            color: var(--text);
+            margin-bottom: 30px;
+            letter-spacing: 1.5px;
+        }
+        
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+        
+        .feature-item {
+            display: flex;
+            gap: 16px;
+            padding: 20px;
+            background: var(--bg);
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .feature-icon svg {
+            width: 24px;
+            height: 24px;
+            stroke: white;
+            stroke-width: 1.5;
+            fill: none;
+        }
+        
+        .feature-text {
+            flex: 1;
+        }
+        
+        .feature-title {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+        
+        .feature-desc {
+            font-size: 13px;
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="page-header">
+            <h1>方案 7 - Blue Trust</h1>
+            <p>蓝色商务 · 专业可靠 · 企业级</p>
+            <span class="scheme-badge">商务首选</span>
+        </div>
+        
+        <!-- 配色展示 -->
+        <div class="palette-section">
+            <h2>配色方案</h2>
+            <div class="palette-grid">
+                <div class="color-card">
+                    <div class="color-preview" style="background: var(--primary);"></div>
+                    <div class="color-info">
+                        <div class="color-name">主色</div>
+                        <div class="color-hex">#2563EB</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-preview" style="background: var(--primary-light);"></div>
+                    <div class="color-info">
+                        <div class="color-name">浅蓝</div>
+                        <div class="color-hex">#3B82F6</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-preview" style="background: var(--primary-dark);"></div>
+                    <div class="color-info">
+                        <div class="color-name">深蓝</div>
+                        <div class="color-hex">#1D4ED8</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-preview" style="background: var(--accent);"></div>
+                    <div class="color-info">
+                        <div class="color-name">橙色</div>
+                        <div class="color-hex">#F97316</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-preview" style="background: var(--bg);"></div>
+                    <div class="color-info">
+                        <div class="color-name">背景</div>
+                        <div class="color-hex">#F8FAFC</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-preview" style="background: var(--text);"></div>
+                    <div class="color-info">
+                        <div class="color-name">文字</div>
+                        <div class="color-hex">#1E293B</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 组件展示 -->
+        <div class="components-section">
+            <h2>UI 组件展示</h2>
+            <div class="component-grid">
+                <!-- 卡片 1 -->
+                <div class="card">
+                    <div class="card-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Excel 文件拖拽</h3>
+                    <p class="card-desc">蓝色代表专业和信任，商务场景首选，稳定可靠的视觉体验</p>
+                    <div class="button-group">
+                        <button class="btn btn-primary">选择文件</button>
+                        <button class="btn btn-secondary">浏览</button>
+                    </div>
+                </div>
+                
+                <!-- 卡片 2 -->
+                <div class="card" style="background: var(--bg-card);">
+                    <div class="card-icon" style="background: linear-gradient(135deg, var(--accent), #EA580C);">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">图片源选择</h3>
+                    <p class="card-desc">橙色强调色增加活力感，支持文件夹、ZIP、RAR 格式</p>
+                    <div class="input-group">
+                        <label class="input-label">图片源路径</label>
+                        <input class="input" type="text" value="/Users/example/Images">
+                    </div>
+                </div>
+                
+                <!-- 卡片 3 -->
+                <div class="card">
+                    <h3 class="card-title">处理进度</h3>
+                    <div class="progress-section">
+                        <div class="progress-label">
+                            <span>已处理 267/506</span>
+                            <span style="color: var(--primary);">65%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                    </div>
+                    <div class="badge-group">
+                        <span class="badge badge-success">成功 245</span>
+                        <span class="badge badge-warning">失败 22</span>
+                        <span class="badge badge-info">待处理 239</span>
+                    </div>
+                </div>
+                
+                <!-- 卡片 4 -->
+                <div class="card" style="background: var(--bg-card);">
+                    <h3 class="card-title">统计信息</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">506</div>
+                            <div class="stat-label">总图片数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" style="color: var(--accent);">267</div>
+                            <div class="stat-label">商品数量</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 应用预览 -->
+        <div class="app-preview-section">
+            <h2>应用界面预览</h2>
+            <div class="app-window">
+                <div class="app-titlebar">
+                    <div class="app-dot red"></div>
+                    <div class="app-dot yellow"></div>
+                    <div class="app-dot green"></div>
+                    <div class="app-title">图片自动插入工具</div>
+                </div>
+                <div class="app-content">
+                    <div class="app-header">
+                        <div class="app-logo">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                        </div>
+                        <div class="app-name">图片自动插入工具</div>
+                    </div>
+                    
+                    <div class="drop-zones">
+                        <div class="drop-zone">
+                            <svg class="drop-icon" viewBox="0 0 24 24">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            <div class="drop-title">拖拽 Excel 文件</div>
+                            <div class="drop-desc">支持 .xlsx, .xls</div>
+                        </div>
+                        <div class="drop-zone">
+                            <svg class="drop-icon" viewBox="0 0 24 24">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                            <div class="drop-title">选择图片源</div>
+                            <div class="drop-desc">文件夹 / ZIP / RAR</div>
+                        </div>
+                    </div>
+                    
+                    <div class="app-footer">
+                        <button class="btn btn-primary btn-block">开始处理</button>
+                        <button class="btn btn-secondary btn-block">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 特性列表 -->
+        <div class="features-section">
+            <h2>设计特性</h2>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </div>
+                    <div class="feature-text">
+                        <div class="feature-title">专业可靠</div>
+                        <div class="feature-desc">蓝色传达信任感和专业性，企业级应用首选配色</div>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="2" y1="12" x2="22" y2="12"/>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                    </div>
+                    <div class="feature-text">
+                        <div class="feature-title">商务气质</div>
+                        <div class="feature-desc">稳重大气，适合商务办公环境和正式场合</div>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                    </div>
+                    <div class="feature-text">
+                        <div class="feature-title">活力点缀</div>
+                        <div class="feature-desc">橙色强调色增添活力，避免过于沉闷</div>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                    </div>
+                    <div class="feature-text">
+                        <div class="feature-title">清晰易读</div>
+                        <div class="feature-desc">高对比度确保文字清晰可读，降低视觉疲劳</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

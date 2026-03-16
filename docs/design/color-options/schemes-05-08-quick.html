@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>方案 5-8 快速预览 | 图片自动插入工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #F0F2F5;
+            min-height: 100vh;
+            padding: 60px 20px;
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; }
+        .page-header { text-align: center; margin-bottom: 60px; }
+        .page-header h1 { font-size: 42px; font-weight: 300; color: #2C2C2C; letter-spacing: 3px; margin-bottom: 12px; }
+        .page-header p { font-size: 16px; color: #8B8B8B; }
+        
+        .scheme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px; margin-bottom: 40px; }
+        
+        .scheme-card {
+            background: white; border-radius: 8px; overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: all 0.4s ease;
+        }
+        .scheme-card:hover { transform: translateY(-6px); box-shadow: 0 12px 24px rgba(0,0,0,0.15); }
+        
+        .scheme-preview { height: 100px; display: grid; grid-template-columns: repeat(5, 1fr); }
+        
+        .scheme-info { padding: 28px; }
+        .scheme-title { font-size: 20px; font-weight: 500; color: #2C2C2C; margin-bottom: 8px; }
+        .scheme-desc { font-size: 14px; color: #8B8B8B; margin-bottom: 16px; }
+        
+        .color-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+        .color-tag { padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 500; background: #F5F5F5; color: #5D5D5D; }
+        
+        .badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .badge-popular { background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; }
+        
+        .note {
+            background: white; border-radius: 8px; padding: 30px;
+            text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .note h2 { font-size: 24px; font-weight: 400; margin-bottom: 16px; color: #2C2C2C; }
+        .note p { font-size: 15px; color: #5D5D5D; line-height: 1.8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1>方案 5-8 快速预览</h1>
+            <p>现代 · 专业 · 活力 · 清新</p>
+        </div>
+        
+        <div class="scheme-grid">
+            <!-- 方案 5 -->
+            <div class="scheme-card">
+                <div class="scheme-preview">
+                    <div style="background: #6366F1;"></div>
+                    <div style="background: #818CF8;"></div>
+                    <div style="background: #4F46E5;"></div>
+                    <div style="background: #10B981;"></div>
+                    <div style="background: #F5F3FF;"></div>
+                </div>
+                <div class="scheme-info">
+                    <h3 class="scheme-title">方案 5 - Indigo Modern</h3>
+                    <p class="scheme-desc">靛紫现代 · 活力创意 · 科技感</p>
+                    <div class="color-tags">
+                        <span class="color-tag">#6366F1</span>
+                        <span class="color-tag">#818CF8</span>
+                        <span class="color-tag">#10B981</span>
+                    </div>
+                    <span class="badge badge-popular">年轻活力</span>
+                </div>
+            </div>
+            
+            <!-- 方案 6 -->
+            <div class="scheme-card">
+                <div class="scheme-preview">
+                    <div style="background: #F8FAFC;"></div>
+                    <div style="background: #E2E8F0;"></div>
+                    <div style="background: #CBD5E1;"></div>
+                    <div style="background: #22C55E;"></div>
+                    <div style="background: #0F172A;"></div>
+                </div>
+                <div class="scheme-info">
+                    <h3 class="scheme-title">方案 6 - Dark Professional</h3>
+                    <p class="scheme-desc">深色专业 · 开发者最爱 · 护眼</p>
+                    <div class="color-tags">
+                        <span class="color-tag">#0F172A</span>
+                        <span class="color-tag">#F8FAFC</span>
+                        <span class="color-tag">#22C55E</span>
+                    </div>
+                    <span class="badge badge-popular">专业深邃</span>
+                </div>
+            </div>
+            
+            <!-- 方案 7 -->
+            <div class="scheme-card">
+                <div class="scheme-preview">
+                    <div style="background: #2563EB;"></div>
+                    <div style="background: #3B82F6;"></div>
+                    <div style="background: #1D4ED8;"></div>
+                    <div style="background: #F97316;"></div>
+                    <div style="background: #F8FAFC;"></div>
+                </div>
+                <div class="scheme-info">
+                    <h3 class="scheme-title">方案 7 - Blue Trust</h3>
+                    <p class="scheme-desc">蓝色商务 · 专业可靠 · 企业级</p>
+                    <div class="color-tags">
+                        <span class="color-tag">#2563EB</span>
+                        <span class="color-tag">#3B82F6</span>
+                        <span class="color-tag">#F8FAFC</span>
+                    </div>
+                    <span class="badge badge-popular">商务首选</span>
+                </div>
+            </div>
+            
+            <!-- 方案 8 -->
+            <div class="scheme-card">
+                <div class="scheme-preview">
+                    <div style="background: #0891B2;"></div>
+                    <div style="background: #22D3EE;"></div>
+                    <div style="background: #0E7490;"></div>
+                    <div style="background: #22C55E;"></div>
+                    <div style="background: #ECFEFF;"></div>
+                </div>
+                <div class="scheme-info">
+                    <h3 class="scheme-title">方案 8 - Cyan Fresh</h3>
+                    <p class="scheme-desc">青色清新 · 效率工具 · 现代感</p>
+                    <div class="color-tags">
+                        <span class="color-tag">#0891B2</span>
+                        <span class="color-tag">#22D3EE</span>
+                        <span class="color-tag">#ECFEFF</span>
+                    </div>
+                    <span class="badge badge-popular">清新活力</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="note">
+            <h2>📝 说明</h2>
+            <p>
+                方案 5-8 为快速预览页面，如需查看完整组件展示，<br>
+                请参考方案 1-4 的详细页面或查看 <strong>all-schemes-complete.html</strong>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
