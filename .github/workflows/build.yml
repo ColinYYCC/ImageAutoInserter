@@ -1,0 +1,136 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            name: mac-arm64
+            python-version: '3.9'
+            electron-arch: arm64
+            artifact-suffix: '-mac-arm64'
+            build-command: 'npm run dist:mac'
+            artifact-pattern: '*.dmg'
+
+          - os: windows-latest
+            name: win-x64
+            python-version: '3.9'
+            electron-arch: x64
+            artifact-suffix: '-win-x64'
+            build-command: 'npm run dist:win'
+            artifact-pattern: '*.exe'
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install macOS-specific dependencies
+        if: matrix.name == 'mac-arm64'
+        run: |
+          brew install unrar
+
+      - name: Install Windows-specific dependencies
+        if: matrix.name == 'win-x64'
+        run: |
+          choco install unrar
+
+      - name: Install Python dependencies
+        run: |
+          pip install pyinstaller pillow pandas openpyxl lxml rarfile psutil cryptography
+
+      - name: Install npm dependencies
+        run: |
+          npm ci
+
+      - name: Build Electron app
+        run: |
+          npm run build
+
+      - name: Package with electron-builder
+        run: |
+          npx electron-builder --${{ matrix.name == 'mac-arm64' && 'mac' || 'win' }}
+
+      - name: Find artifacts
+        id: find-artifacts
+        run: |
+          $pattern = if ( '${{ matrix.name }}' -eq 'mac-arm64' ) { '*.dmg' } else { '*.exe' }
+          $artifact = Get-ChildItem -Path release -Filter $pattern | Select-Object -First 1
+          if ($artifact) {
+            Write-Host "Found artifact: $($artifact.Name)"
+            Write-Host "artifact_name=$($artifact.Name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
+          } else {
+            Write-Host "No artifact found matching pattern: $pattern"
+            Get-ChildItem -Path release -Recurse
+          }
+        shell: powershell
+
+      - name: Upload artifacts
+        if: steps.find-artifacts.outputs.artifact_name
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-package
+          path: release/${{ steps.find-artifacts.outputs.artifact_name }}
+          retention-days: 30
+
+      - name: Upload all artifacts for inspection
+        if: matrix.name == 'win-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-x64-all-artifacts
+          path: release/**
+          retention-days: 7
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-arm64-package
+          path: dist/mac
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: win-x64-package
+          path: dist/win
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/mac/*.dmg
+            dist/win/*.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

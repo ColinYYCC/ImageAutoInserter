@@ -1,0 +1,165 @@
+{
+  "name": "imageautoinserter",
+  "version": "1.0.3",
+  "description": "**图片自动插入工具** - 根据商品编码自动将图片嵌入 Excel 表格",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev": "npm run copy-python && cross-env NODE_ENV=development electron .",
+    "dev:vite-only": "vite",
+    "dev:electron-only": "cross-env NODE_ENV=development ts-node src/main/main.ts",
+    "electron": "npm run copy-python && cross-env NODE_ENV=development electron .",
+    "watch:main": "vite build --config vite.main.config.ts --watch",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer && npm run build:python && npm run copy-python && npm run copy-python-binary",
+    "build:main": "vite build --config vite.main.config.ts",
+    "build:preload": "vite build --config vite.preload.config.ts",
+    "build:renderer": "vite build --config vite.renderer.config.ts",
+    "build:python": "python3 -m PyInstaller pyinstaller.spec --noconfirm --clean",
+    "copy-python": "mkdir -p dist/python && cp src/cli.py dist/python/ && cp -r src/core dist/python/ && cp -r src/utils dist/python/ && mkdir -p dist/python/python && cp -r src/python/*.py dist/python/python/",
+    "copy-python-binary": "mkdir -p dist/python-binary && cp dist/image-processor dist/python-binary/",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:run": "vitest run",
+    "dist": "npm run clean && npm run build && electron-builder",
+    "dist:mac": "npm run clean && npm run build && electron-builder --mac",
+    "dist:win": "npm run clean && npm run build && electron-builder --win",
+    "dist:all": "npm run clean && npm run build && electron-builder --mac --win",
+    "clean": "rm -rf dist release && rm -rf node_modules/.vite && rm -rf ~/Library/Caches/electron-builder"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "@types/adm-zip": "^0.5.7",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/styled-components": "^5.1.36",
+    "@vitejs/plugin-react": "^4.2.0",
+    "@vitest/coverage-v8": "^1.1.0",
+    "@vitest/ui": "^1.1.0",
+    "concurrently": "^8.2.0",
+    "cross-env": "^7.0.3",
+    "electron": "^27.0.0",
+    "electron-builder": "^26.8.1",
+    "electron-reload": "^2.0.0-alpha.1",
+    "jsdom": "^23.0.1",
+    "sharp": "^0.34.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.0",
+    "vitest": "^1.1.0",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "7zip-min": "^3.0.1",
+    "adm-zip": "^0.5.16",
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.8.3",
+    "html-to-react": "^1.7.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "styled-components": "^6.3.11",
+    "unrar-promise": "^3.1.0",
+    "xlsx": "^0.18.5"
+  },
+  "build": {
+    "appId": "com.imageautoinserter.app",
+    "productName": "ImageAutoInserter",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets/icon.iconset"
+    },
+    "files": [
+      "dist/main/**/*",
+      "dist/renderer/**/*",
+      "dist/python/**/*",
+      "package.json",
+      "node_modules/xlsx/**/*",
+      "node_modules/adm-zip/**/*",
+      "node_modules/unrar-promise/**/*",
+      "node_modules/7zip-min/**/*",
+      "node_modules/electron-store/**/*",
+      "!**/*.map",
+      "!**/__pycache__/**",
+      "!**/*.pyc",
+      "!**/*.pyo",
+      "!**/*.psd",
+      "!**/*.ai",
+      "!**/*.sketch",
+      "!**/*.md",
+      "!**/README*",
+      "!**/CHANGELOG*",
+      "!**/*.test.*",
+      "!**/*.spec.*",
+      "!**/tests/**",
+      "!**/.trae/**",
+      "!**/Sample/**",
+      "!**/.git/**",
+      "!**/.github/**",
+      "!**/docs/**",
+      "!**/scripts/**"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/python-binary",
+        "to": "python-binary",
+        "filter": [
+          "*"
+        ]
+      },
+      {
+        "from": "public/assets/fonts",
+        "to": "assets/fonts",
+        "filter": [
+          "**/*.ttf"
+        ]
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "dist/python/**/*"
+    ],
+    "icon": "assets/icon.iconset/icon_512x512",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "icon": "assets/icon.iconset/icon_mac.icns",
+      "extendInfo": {
+        "LSUIElement": false,
+        "CFBundleDocumentTypes": [],
+        "CFBundleURLTypes": []
+      }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker",
+      "icon": "assets/icon.iconset/icon_win.ico"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "ColinYYCC",
+      "repo": "ImageAutoInserter",
+      "releaseType": "release"
+    }
+  }
+}
