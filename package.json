@@ -1,6 +1,6 @@
 {
   "name": "imageautoinserter",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "**图片自动插入工具** - 根据商品编码自动将图片嵌入 Excel 表格",
   "main": "dist/main/main.js",
   "scripts": {
