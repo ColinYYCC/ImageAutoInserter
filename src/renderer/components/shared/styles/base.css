@@ -1,0 +1,106 @@
+/* ===== Base Styles ===== */
+@import './variables.css';
+@import './fonts.css';
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-family-base);
+  background: var(--color-bg-app);
+  color: var(--color-text-primary);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-shadow: 0 0 0 transparent;
+}
+
+/* Windows-specific font rendering fixes */
+@supports (-webkit-appearance: none) and (not (overflow: -webkit-optimize-scroll)) {
+  body {
+    -webkit-font-smoothing: subpixel-antialiased;
+  }
+}
+
+/* Improve text clarity on Windows */
+@media screen and (-webkit-min-device-pixel-ratio: 2) and (min-resolution: 192dpi) {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ===== Scrollbars ===== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-border-light);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
+
+/* ===== Selection ===== */
+::selection {
+  background: var(--color-primary);
+  color: white;
+}
+
+/* ===== Focus ===== */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.2);
+}
+
+/* ===== Button Reset ===== */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  outline: none;
+}
+
+/* ===== Input Reset ===== */
+input, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+}
+
+/* ===== Reduced Motion Accessibility ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

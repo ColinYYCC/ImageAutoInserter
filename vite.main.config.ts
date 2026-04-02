@@ -12,7 +12,7 @@ export default defineConfig({
       fileName: () => 'main.js',
     },
     rollupOptions: {
-      external: ['electron', 'child_process', 'path', 'fs', 'fs/promises', 'os', 'events', 'stream', 'util', 'url', 'http', 'https', 'readline', 'xlsx', 'crypto', 'zlib', 'constants', 'assert'],
+      external: ['electron', 'child_process', 'path', 'fs', 'fs/promises', 'os', 'events', 'stream', 'util', 'url', 'http', 'https', 'readline', 'xlsx', 'crypto', 'zlib', 'constants', 'assert', 'unrar-promise', 'node-unrar-js', 'exceljs'],
     },
     minify: false,
     sourcemap: true,

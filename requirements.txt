@@ -16,6 +16,7 @@ requests>=2.28.0
 
 # Archive Processing
 rarfile>=4.0
+py7zr>=0.20.0
 
 # Type Checking
 typing-extensions>=4.0.0

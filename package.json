@@ -1,34 +1,34 @@
 {
   "name": "imageautoinserter",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "description": "**图片自动插入工具** - 根据商品编码自动将图片嵌入 Excel 表格",
   "main": "dist/main/main.js",
   "scripts": {
-    "dev": "npm run copy-python && cross-env NODE_ENV=development electron .",
-    "dev:vite-only": "vite",
+    "dev": "node scripts/build.js copy-python && cross-env NODE_ENV=development electron .",
+    "dev:vite-only": "vite --config vite.renderer.config.ts",
     "dev:electron-only": "cross-env NODE_ENV=development ts-node src/main/main.ts",
-    "electron": "npm run copy-python && cross-env NODE_ENV=development electron .",
+    "electron": "node scripts/build.js copy-python && cross-env NODE_ENV=development electron .",
     "watch:main": "vite build --config vite.main.config.ts --watch",
-    "build": "npm run build:main && npm run build:preload && npm run build:renderer && npm run copy-python",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer && node scripts/build.js copy-python && node scripts/build.js copy-fonts && node scripts/build.js copy-node-modules",
     "build:main": "vite build --config vite.main.config.ts",
     "build:preload": "vite build --config vite.preload.config.ts",
     "build:renderer": "vite build --config vite.renderer.config.ts",
-    "copy-python": "mkdir -p dist/python && cp -r src/python/*.py dist/python/ && cp -r src/core dist/python/ && cp -r src/utils dist/python/",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "test:run": "vitest run",
-    "dist": "npm run build && electron-builder",
-    "dist:mac": "npm run build && electron-builder --mac",
+    "dist": "npm run build && electron-builder --mac --win",
     "dist:win": "npm run build && electron-builder --win",
-    "dist:all": "npm run build && electron-builder --mac --win"
+    "dist:mac": "npm run build && electron-builder --mac",
+    "clean": "node scripts/build.js clean-dist"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@types/adm-zip": "^0.5.7",
@@ -40,7 +40,7 @@
     "@vitest/ui": "^1.1.0",
     "concurrently": "^8.2.0",
     "cross-env": "^7.0.3",
-    "electron": "^27.0.0",
+    "electron": "^41.0.3",
     "electron-builder": "^26.8.1",
     "electron-reload": "^2.0.0-alpha.1",
     "jsdom": "^23.0.1",
@@ -56,12 +56,13 @@
     "adm-zip": "^0.5.16",
     "electron-store": "^8.1.0",
     "electron-updater": "^6.8.3",
+    "exceljs": "^4.4.0",
     "html-to-react": "^1.7.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "styled-components": "^6.3.11",
     "unrar-promise": "^3.1.0",
-    "xlsx": "^0.18.5"
+    "zustand": "^5.0.12"
   },
   "build": {
     "appId": "com.imageautoinserter.app",
@@ -72,9 +73,10 @@
     },
     "files": [
       "dist/main/**/*",
+      "dist/main/node_modules/**/*",
       "dist/renderer/**/*",
       "package.json",
-      "node_modules/xlsx/**/*",
+      "node_modules/exceljs/**/*",
       "node_modules/adm-zip/**/*",
       "node_modules/unrar-promise/**/*",
       "node_modules/7zip-min/**/*",
@@ -113,16 +115,16 @@
     ],
     "asar": true,
     "asarUnpack": [
-      "python/**/*"
+      "python/**/*",
+      "node_modules/node-unrar-js/**/*",
+      "node_modules/7zip-bin/**/*"
     ],
-    "icon": "build/icons/icon",
     "mac": {
       "category": "public.app-category.productivity",
       "target": [
         {
           "target": "dmg",
           "arch": [
-            "x64",
             "arm64"
           ]
         }
@@ -136,24 +138,24 @@
         {
           "target": "nsis",
           "arch": [
-            "x64",
-            "ia32"
-          ]
-        }
-      ],
-      "requestedExecutionLevel": "asInvoker",
-      "icon": "build/icons/icon.ico"
-    },
-    "linux": {
-      "target": [
-        {
-          "target": "AppImage",
-          "arch": [
             "x64"
           ]
         }
       ],
-      "icon": "build/icons"
+      "requestedExecutionLevel": "requireAdministrator",
+      "icon": "build/icons/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": true,
+      "installerIcon": "build/icons/icon.ico",
+      "uninstallerIcon": "build/icons/icon.ico",
+      "include": "build/installer.nsh",
+      "displayLanguageSelector": false
     },
     "publish": {
       "provider": "github",

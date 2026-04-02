@@ -13,6 +13,45 @@ addopts = [
     "--cov-report=term-missing",
 ]
 
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = ["openpyxl.*", "PIL.*", "pandas.*", "requests.*"]
+ignore_missing_imports = true
+
+[tool.flake8]
+max-line-length = 120
+extend-ignore = ["E203", "W503"]
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "*.egg-info",
+    "build",
+    "dist",
+    "node_modules",
+    ".pytest_cache",
+]
+per-file-ignores = [
+    "__init__.py:F401",
+]
+
 # 测试标记
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",

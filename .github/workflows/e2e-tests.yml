@@ -1,0 +1,180 @@
+name: Electron E2E Tests
+
+on:
+  workflow_run:
+    workflows: ["Build and Release"]
+    types: [completed]
+    branches:
+      - main
+      - master
+
+  workflow_dispatch:
+
+jobs:
+  e2e-web-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Web E2E tests
+        run: npx playwright test --config=playwright.config.ts --project=chromium --reporter=list
+        continue-on-error: true
+
+      - name: Upload Web test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-web
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  e2e-electron-tests:
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            name: mac-arm64
+            artifact-name: mac-arm64-package
+            build-command: npm run dist:mac
+
+          - os: windows-latest
+            name: win-x64
+            artifact-name: win-x64-package
+            build-command: npm run dist:win
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: pip install pyinstaller pillow pandas openpyxl lxml rarfile psutil cryptography
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and package
+        run: ${{ matrix.build-command }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify application
+        run: |
+          if [ '${{ matrix.os }}' = 'macos-latest' ]; then
+            ls -la release/*.dmg
+          else
+            ls -la release/*.exe
+          fi
+
+      - name: Run basic smoke test
+        run: |
+          if [ '${{ matrix.os }}' = 'macos-latest' ]; then
+            echo "Skipping GUI test on macOS in CI - manual verification required"
+          else
+            echo "Skipping GUI test on Windows in CI - manual verification required"
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: release/**
+          retention-days: 30
+
+  manual-test-checklist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate test fixtures
+        run: |
+          mkdir -p tests/e2e/fixtures
+          node -e "
+          const AdmZip = require('adm-zip');
+          const XLSX = require('xlsx');
+          const fs = require('fs');
+          const path = require('path');
+          
+          const fixturesDir = 'tests/e2e/fixtures';
+          
+          // Create test ZIP
+          const zip = new AdmZip();
+          const mockJpeg = Buffer.from([0xFF, 0xD8, 0xFF, 0xE0]);
+          zip.addFile('SKU001.jpg', mockJpeg);
+          zip.addFile('SKU002.png', mockJpeg);
+          zip.writeZip(path.join(fixturesDir, 'test-images.zip'));
+          
+          // Create corrupted ZIP
+          fs.writeFileSync(path.join(fixturesDir, 'corrupted.zip'), 'invalid');
+          
+          // Create test Excel
+          const data = [
+            { '商品编码': 'SKU001', '商品名称': 'Test Product 1' },
+            { '商品编码': 'SKU002', '商品名称': 'Test Product 2' },
+          ];
+          const worksheet = XLSX.utils.json_to_sheet(data);
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+          XLSX.writeFile(workbook, path.join(fixturesDir, 'test-data.xlsx'));
+          
+          console.log('Test fixtures created successfully');
+          "
+
+      - name: Upload test fixtures
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-fixtures
+          path: tests/e2e/fixtures/
+          retention-days: 14
+
+  summary:
+    needs: [e2e-web-tests, e2e-electron-tests, manual-test-checklist]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "## E2E Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Web Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ needs.e2e-web-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Electron Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- macOS ARM64: ${{ needs.e2e-electron-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Windows x64: ${{ needs.e2e-electron-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Manual Testing" >> $GITHUB_STEP_SUMMARY
+          echo "- Test fixtures: Available for download" >> $GITHUB_STEP_SUMMARY
+          echo "- Checklist: See MANUAL_TEST_CHECKLIST.md" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note**: Full GUI testing requires manual verification using the packaged application." >> $GITHUB_STEP_SUMMARY

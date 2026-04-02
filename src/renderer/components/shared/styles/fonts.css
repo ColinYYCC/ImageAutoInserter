@@ -1,0 +1,27 @@
+/* ===== Custom Fonts ===== */
+
+/* NotoSansSC - for Chinese text (子集字体，仅包含UI用到的285个字符) */
+@font-face {
+  font-family: 'NotoSansSC';
+  src: url('/assets/fonts/NotoSansSC-subset.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* DIN Alternate Bold - for English and Numbers */
+@font-face {
+  font-family: 'DIN Alternate';
+  src: url('/assets/fonts/DINAlternate-Bold.ttf') format('truetype');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Font Stack */
+:root {
+  --font-family-english: 'DIN Alternate', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-chinese: 'NotoSansSC', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  --font-family-base: 'DIN Alternate', 'NotoSansSC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  --font-family-mono: 'DIN Alternate', 'SF Mono', 'Consolas', monospace;
+}
