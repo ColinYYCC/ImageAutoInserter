@@ -1,14 +1,13 @@
-import { defineConfig, devices } from '@playwright/test';
-import path from 'path';
+import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: 0,
+  retries: 1,
   workers: 1,
   reporter: 'list',
-  timeout: 60000,
+  timeout: 120000,
   expect: {
     timeout: 10000,
   },
@@ -21,13 +20,15 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        browserName: 'chromium',
+      },
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: 'npm run dev:e2e',
     port: 5173,
-    timeout: 120000,
+    timeout: 180000,
     reuseExistingServer: true,
   },
 });

@@ -4,7 +4,25 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock 定义
+// 定义 mock 工厂函数（必须在 vi.mock 外部）
+const createMockCircuitBreaker = () => ({
+  execute: vi.fn(async (fn: any) => {
+    try {
+      return await fn();
+    } catch (error) {
+      throw error;
+    }
+  }),
+  getState: vi.fn().mockReturnValue({ isOpen: false, failureCount: 0, lastFailureTime: 0, lastSuccessTime: 0 }),
+  reset: vi.fn(),
+});
+
+const createMockErrorRecoveryManager = () => ({
+  registerStrategy: vi.fn(),
+  recover: vi.fn().mockResolvedValue(true),
+});
+
+// Mock 定义（使用工厂函数）
 vi.mock('electron-updater', () => ({
   autoUpdater: {
     autoDownload: false,
@@ -20,6 +38,7 @@ vi.mock('electron-updater', () => ({
 
 vi.mock('electron', () => ({
   app: {
+    getPath: vi.fn(() => '/tmp/test-user-data'),
     isPackaged: true,
   },
   BrowserWindow: vi.fn(),
@@ -27,42 +46,24 @@ vi.mock('electron', () => ({
 
 vi.mock('../../src/main/logger', () => ({
   logInfo: vi.fn(),
+  logWarn: vi.fn(),
   logError: vi.fn(),
 }));
 
-// 创建 mock CircuitBreaker 实例
-const createMockCircuitBreaker = () => ({
-  execute: vi.fn(async (fn: any) => {
+vi.mock('../../src/main/retry-handler', () => ({
+  withRetry: vi.fn(async (fn: any) => {
     try {
-      return await fn();
+      const result = await fn();
+      return { success: true, result, attempts: 1, totalTimeMs: 0 };
     } catch (error) {
-      throw error;
+      return { success: false, error, attempts: 1, totalTimeMs: 0 };
     }
   }),
-  getState: vi.fn().mockReturnValue({ isOpen: false, failureCount: 0, lastFailureTime: 0, lastSuccessTime: 0 }),
-  reset: vi.fn(),
-});
-
-// 使用 factory 函数避免变量提升问题
-vi.mock('../../src/main/retry-handler', () => {
-  return {
-    withRetry: vi.fn(async (fn: any) => {
-      try {
-        const result = await fn();
-        return { success: true, result, attempts: 1, totalTimeMs: 0 };
-      } catch (error) {
-        return { success: false, error, attempts: 1, totalTimeMs: 0 };
-      }
-    }),
-    CircuitBreaker: vi.fn(() => createMockCircuitBreaker()),
-    ErrorRecoveryManager: {
-      getInstance: vi.fn().mockReturnValue({
-        registerStrategy: vi.fn(),
-        recover: vi.fn().mockResolvedValue(true),
-      }),
-    },
-  };
-});
+  CircuitBreaker: vi.fn(() => createMockCircuitBreaker()),
+  ErrorRecoveryManager: {
+    getInstance: vi.fn(() => createMockErrorRecoveryManager()),
+  },
+}));
 
 // 动态导入被测试模块
 async function loadUpdateManager() {
@@ -284,7 +285,7 @@ describe('UpdateManager - 热更新管理器测试', () => {
       updateManager.setMainWindow(mockWindow);
 
       updateManager.quitAndInstall();
-      
+
       // 验证通知已发送
       expect(mockWindow.webContents.send).toHaveBeenCalledWith(
         'update-will-install',

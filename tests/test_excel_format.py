@@ -8,6 +8,7 @@ Excel 格式设置单元测试
 """
 
 import pytest
+import platform
 from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
@@ -16,7 +17,17 @@ from src.core.excel_processor import ExcelProcessor
 
 class TestExcelFormat:
     """Excel 格式设置测试类"""
-    
+
+    def _get_expected_font(self):
+        """获取当前平台预期的字体"""
+        system = platform.system()
+        if system == 'Windows':
+            return '微软雅黑'
+        elif system == 'Darwin':
+            return 'Helvetica Neue'
+        else:
+            return 'Liberation Sans'
+
     @pytest.fixture
     def sample_excel(self, tmp_path):
         """创建示例 Excel 文件"""
@@ -53,20 +64,21 @@ class TestExcelFormat:
         return image_path
     
     def test_add_picture_columns_font(self, sample_excel):
-        """测试添加 Picture 列时设置字体为微软雅黑"""
+        """测试添加 Picture 列时设置字体"""
         processor = ExcelProcessor(str(sample_excel), read_only=False)
         processor.find_sheet_with_product_code()
-        
+
         # 添加 Picture 列
         result = processor.add_picture_columns()
-        
+
         # 验证字体设置
+        expected_font = self._get_expected_font()
         worksheet = processor.workbook["Sheet1"]
         for picture_name, column_num in result.items():
             cell = worksheet.cell(row=1, column=column_num)
-            
-            # 检查字体名称
-            assert cell.font.name == '微软雅黑', f"{picture_name} 的字体不是微软雅黑"
+
+            # 检查字体名称（跨平台兼容）
+            assert cell.font.name == expected_font, f"{picture_name} 的字体不是 {expected_font}"
             # 检查字体大小
             assert cell.font.size == 11, f"{picture_name} 的字体大小不是 11"
     

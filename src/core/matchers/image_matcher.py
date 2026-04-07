@@ -5,10 +5,27 @@
 """
 
 import os
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ..image_processor import ImageInfo
-from ..utils.image_cache import get_global_cache
+from ..cache.image_cache import ImageValidationCache
+
+# 全局缓存实例
+_global_cache: Optional[ImageValidationCache] = None
+
+
+def get_global_cache() -> ImageValidationCache:
+    """
+    获取全局缓存实例（单例模式）
+    
+    Returns:
+        ImageValidationCache: 全局缓存实例
+    """
+    global _global_cache
+    if _global_cache is None:
+        _global_cache = ImageValidationCache(max_items=500)
+    return _global_cache
 
 
 class ImageMatcher:
@@ -126,7 +143,7 @@ class ImageMatcher:
             return None
 
         # 存入缓存
-        cache.put(cache_key, data)
+        cache.set(cache_key, data)
         # 写回 ImageInfo
         img_info.image_data = data
         return data
@@ -199,3 +216,76 @@ class ImageMatcher:
             if product_images:
                 max_col = max(max_col, max(product_images.keys()))
         return max_col
+
+    def preload_images_parallel(
+        self,
+        product_codes: List[str],
+        max_workers: Optional[int] = None,
+        progress_callback: Optional[callable] = None
+    ) -> Dict[str, Dict[int, bytes]]:
+        """
+        并行预加载多个商品的图片数据
+
+        Args:
+            product_codes: 需要预加载的商品编码列表
+            max_workers: 并行线程数（None=自动检测）
+            progress_callback: 进度回调函数
+
+        Returns:
+            Dict[str, Dict[int, bytes]]: 商品编码 -> {picture_column -> image_data}
+        """
+        from ..utils.system_info import get_optimal_thread_count
+
+        if max_workers is None:
+            max_workers = get_optimal_thread_count()
+
+        results: Dict[str, Dict[int, bytes]] = {}
+        total_tasks = 0
+        completed_tasks = 0
+
+        tasks: List[Tuple[str, int]] = []
+        for product_code in product_codes:
+            for pic_col in range(1, 4):
+                if self.has_image(product_code, pic_col):
+                    tasks.append((product_code, pic_col))
+                    total_tasks += 1
+
+        if total_tasks == 0:
+            return results
+
+        def load_single_image(product_code: str, pic_col: int) -> Tuple[str, int, Optional[bytes]]:
+            img_info = self.get_image(product_code, pic_col)
+            if not img_info:
+                return (product_code, pic_col, None)
+
+            try:
+                with open(img_info.source_path, 'rb') as f:
+                    data = f.read()
+                return (product_code, pic_col, data)
+            except (IOError, OSError):
+                return (product_code, pic_col, None)
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(load_single_image, pc, pic_col): (pc, pic_col)
+                for pc, pic_col in tasks
+            }
+
+            for future in as_completed(futures):
+                product_code, pic_col, image_data = future.result()
+
+                if product_code not in results:
+                    results[product_code] = {}
+
+                if image_data is not None:
+                    results[product_code][pic_col] = image_data
+
+                completed_tasks += 1
+                if progress_callback and total_tasks > 0:
+                    progress = int((completed_tasks / total_tasks) * 100)
+                    progress_callback(
+                        f"预加载图片: {completed_tasks}/{total_tasks}",
+                        progress
+                    )
+
+        return results

@@ -9,8 +9,11 @@ import threading
 import queue
 import time
 import sys
+import logging
 from typing import Optional, Callable
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -187,7 +190,7 @@ class ProgressEmitter:
             })
             self._last_emit_time = time.time()
         except Exception as e:
-            print(f"[ProgressEmitter] 发送失败: {e}", file=sys.stderr)
+            logger.error(f"发送进度失败: {e}")
 
 
 # 便捷函数：创建标准输出发射器

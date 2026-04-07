@@ -1,8 +1,11 @@
 /**
  * 自适应文件处理器
  * 精简版：仅包含 validateExcelAdaptive 和 canProcessFile
+ *
+ * 使用 xlsx (SheetJS) 替代 ExcelJS，避免 anchors bug
+ * @see https://github.com/exceljs/exceljs/issues/2591
  */
-import ExcelJS from 'exceljs';
+import * as XLSX from 'xlsx';
 import * as fs from 'fs';
 
 // ============ 类型定义 ============
@@ -103,11 +106,12 @@ function findHeaderRow(data: ExcelSheetData, maxSearchRows: number, requiredColu
   return { found: false, rowIndex: -1, headers: [] };
 }
 
-async function readWorkbookWithStrategy(filePath: string): Promise<ExcelJS.Workbook> {
-  const workbook = new ExcelJS.Workbook();
-
-  await workbook.xlsx.readFile(filePath);
-  return workbook;
+async function readWorkbookWithStrategy(filePath: string): Promise<XLSX.WorkBook> {
+  return XLSX.readFile(filePath, {
+    cellFormula: true,
+    cellNF: true,
+    cellText: false
+  });
 }
 
 export async function validateExcelAdaptive(
@@ -148,7 +152,8 @@ export async function validateExcelAdaptive(
 
     const workbook = await readWorkbookWithStrategy(fileInfo.path);
 
-    if (!workbook.worksheets || workbook.worksheets.length === 0) {
+    const sheetNames = workbook.SheetNames;
+    if (!sheetNames || sheetNames.length === 0) {
       return {
         valid: false,
         error: 'Excel 文件中没有工作表',
@@ -168,16 +173,10 @@ export async function validateExcelAdaptive(
       message: '解析表格结构...',
     });
 
-    const firstSheet = workbook.worksheets[0];
-    const data: ExcelSheetData = [];
+    const firstSheetName = sheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
 
-    firstSheet.eachRow({ includeEmpty: true }, (row) => {
-      const rowData: ExcelRow = [];
-      row.eachCell({ includeEmpty: true }, (cell) => {
-        rowData.push(cell.value as ExcelCellValue);
-      });
-      data.push(rowData);
-    });
+    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as ExcelSheetData;
 
     if (!data || data.length === 0) {
       return {

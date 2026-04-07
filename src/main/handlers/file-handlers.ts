@@ -6,7 +6,8 @@ import { FileInfo } from '../../shared/types';
 import { writeLog } from '../utils/logging';
 import { getMainWindow } from '../servers/window-manager';
 import { getDesktopPath, getDocumentsPath } from '../path-config';
-import { isWindows, isMac } from '../platform';
+import { platform } from '../../core/platform';
+import { securityBookmarkManager } from '../utils/security-bookmark';
 
 const SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
 const IMAGE_SOURCE_TYPES = ['.zip', '.rar', '.7z', '.folder'];
@@ -16,11 +17,11 @@ async function validateRarWithWasm(sourcePath: string): Promise<{ valid: boolean
   try {
     writeLog('[validateRarWithWasm] 开始验证 RAR 文件:', sourcePath);
 
-    const unrarModule = require('unrar-promise');
-    const list = unrarModule.list || unrarModule.default?.list;
+    const unrar = require('node-unrar-js');
+    const createExtractor = unrar.createExtractorFromData || unrar.default?.createExtractorFromData;
 
-    if (!list) {
-      writeLog('[validateRarWithWasm] list 函数不可用');
+    if (!createExtractor) {
+      writeLog('[validateRarWithWasm] createExtractorFromData 函数不可用');
       return {
         valid: false,
         supportedCount: 0,
@@ -30,31 +31,23 @@ async function validateRarWithWasm(sourcePath: string): Promise<{ valid: boolean
       };
     }
 
-    const listResult = await list(sourcePath);
-    writeLog('[validateRarWithWasm] list 结果:', listResult);
+    const fileBuffer = fs.readFileSync(sourcePath);
+    const data = Uint8Array.from(fileBuffer).buffer;
+    const extractor = await createExtractor({ data });
+
+    const list = extractor.getFileList();
+    const fileHeaders = [...list.fileHeaders];
 
     let totalFiles = 0;
     let supportedCount = 0;
 
-    if (listResult && Array.isArray(listResult)) {
-      for (const file of listResult) {
-        if (file.type === 'directory') continue;
+    for (const file of fileHeaders) {
+      if (file.flags?.directory) continue;
 
-        totalFiles++;
-        const ext = path.extname(file.path || '').toLowerCase();
-        if (SUPPORTED_IMAGE_EXTENSIONS.includes(ext)) {
-          supportedCount++;
-        }
-      }
-    } else if (listResult && listResult.fileHeaders) {
-      for (const file of listResult.fileHeaders) {
-        if (file.flags?.directory) continue;
-
-        totalFiles++;
-        const ext = path.extname(file.name || '').toLowerCase();
-        if (SUPPORTED_IMAGE_EXTENSIONS.includes(ext)) {
-          supportedCount++;
-        }
+      totalFiles++;
+      const ext = path.extname(file.name || '').toLowerCase();
+      if (SUPPORTED_IMAGE_EXTENSIONS.includes(ext)) {
+        supportedCount++;
       }
     }
 
@@ -188,7 +181,7 @@ export function registerFileHandlers(): void {
       }
 
       let defaultPath: string | undefined;
-      if (isWindows() || isMac()) {
+      if (platform.isWindows() || platform.isMac()) {
         const desktopPath = getDesktopPath();
         const documentsPath = getDocumentsPath();
         if (fs.existsSync(desktopPath)) {
@@ -203,6 +196,7 @@ export function registerFileHandlers(): void {
         filters,
         properties,
         defaultPath,
+        securityScopedBookmarks: platform.isMac(),
       };
 
       const mainWindow = getMainWindow();
@@ -217,6 +211,13 @@ export function registerFileHandlers(): void {
       }
 
       const filePath = result.filePaths[0];
+      
+      if (platform.isMac() && result.bookmarks && result.bookmarks.length > 0) {
+        const bookmark = result.bookmarks[0];
+        if (typeof bookmark === 'string') {
+          securityBookmarkManager.requestFolderAccess(path.dirname(filePath));
+        }
+      }
       const ext = path.extname(filePath).toLowerCase();
       let type: FileInfo['type'] = 'file';
 
@@ -270,7 +271,7 @@ export function registerFileHandlers(): void {
         if (!IMAGE_ARCHIVE_TYPES.includes(ext)) {
           return { valid: false, error: '不支持的文件格式，请使用 ZIP、RAR 或 7Z 格式' };
         }
-      } else if (accept.includes('.xlsx') && ext !== '.xlsx') {
+      } else if (accept.toLowerCase().includes('.xlsx') && ext !== '.xlsx') {
         return { valid: false, error: '请选择 .xlsx 格式的 Excel 文件' };
       }
 

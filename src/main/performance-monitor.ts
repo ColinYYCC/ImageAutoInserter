@@ -1,4 +1,5 @@
 import { logInfo, logDebug } from './logger';
+import { APP_CONFIG } from '../shared/app-config';
 
 export interface PerformanceMetric {
   name: string;
@@ -21,11 +22,18 @@ class PerformanceMonitor {
   private startTime: number;
   private pythonProcessStartTime: number | null = null;
   private memorySnapshots: NodeJS.MemoryUsage[] = [];
+  private isEnabled: boolean;
+  private sampleTimer: NodeJS.Timeout | null = null;
 
   private constructor() {
+    this.isEnabled = APP_CONFIG.performance.enabled;
     this.startTime = Date.now();
     this.recordMetric('app', 'start_time', 0, 'ms');
-    logInfo(`[Performance] Monitor initialized at ${this.startTime}`);
+    logInfo(`[Performance] Monitor initialized at ${this.startTime}, enabled: ${this.isEnabled}`);
+
+    if (this.isEnabled) {
+      this.startPeriodicSampling();
+    }
   }
 
   static getInstance(): PerformanceMonitor {
@@ -36,10 +44,23 @@ class PerformanceMonitor {
   }
 
   static resetInstance(): void {
+    if (PerformanceMonitor.instance?.sampleTimer) {
+      clearInterval(PerformanceMonitor.instance.sampleTimer);
+    }
     PerformanceMonitor.instance = undefined as any;
   }
 
+  private startPeriodicSampling(): void {
+    const intervalMs = APP_CONFIG.performance.sampleIntervalMs;
+
+    this.sampleTimer = setInterval(() => {
+      this.recordMemory('system', 'periodic_sample');
+    }, intervalMs);
+  }
+
   recordMetric(module: string, name: string, value: number, unit: string = ''): void {
+    if (!this.isEnabled) return;
+
     const key = `${module}:${name}`;
     const metric: PerformanceMetric = {
       name,
@@ -62,6 +83,7 @@ class PerformanceMonitor {
   }
 
   startTimer(module: string, name: string): () => void {
+    if (!this.isEnabled) return () => {};
     const start = Date.now();
     return () => {
       const duration = Date.now() - start;
@@ -70,17 +92,17 @@ class PerformanceMonitor {
   }
 
   recordMemory(module: string, operation: string): void {
-    if (process.memoryUsage) {
-      const mem = process.memoryUsage();
-      this.memorySnapshots.push(mem);
+    if (!this.isEnabled || !process.memoryUsage) return;
 
-      this.recordMetric(module, `${operation}_rss`, mem.rss / 1024 / 1024, 'MB');
-      this.recordMetric(module, `${operation}_heapTotal`, mem.heapTotal / 1024 / 1024, 'MB');
-      this.recordMetric(module, `${operation}_heapUsed`, mem.heapUsed / 1024 / 1024, 'MB');
-      this.recordMetric(module, `${operation}_external`, mem.external / 1024 / 1024, 'MB');
+    const mem = process.memoryUsage();
+    this.memorySnapshots.push(mem);
 
-      logDebug(`[Performance] ${module}:${operation} memory - RSS: ${(mem.rss / 1024 / 1024).toFixed(2)}MB, Heap: ${(mem.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-    }
+    this.recordMetric(module, `${operation}_rss`, mem.rss / 1024 / 1024, 'MB');
+    this.recordMetric(module, `${operation}_heapTotal`, mem.heapTotal / 1024 / 1024, 'MB');
+    this.recordMetric(module, `${operation}_heapUsed`, mem.heapUsed / 1024 / 1024, 'MB');
+    this.recordMetric(module, `${operation}_external`, mem.external / 1024 / 1024, 'MB');
+
+    logDebug(`[Performance] ${module}:${operation} memory - RSS: ${(mem.rss / 1024 / 1024).toFixed(2)}MB, Heap: ${(mem.heapUsed / 1024 / 1024).toFixed(2)}MB`);
   }
 
   startPythonProcess(): void {

@@ -50,10 +50,13 @@ export const PROCESS_CONFIG = {
 
 export const PROGRESS_CONFIG = {
   EXTRACT_MULTIPLIER: 0.1,
-  THROTTLE_MS: 100,
   MIN_JSON_LENGTH: 10,
   MAX_STDERR_LENGTH: 2000,
   ROWS_PER_PROGRESS: 5,
+} as const;
+
+export const UPDATE_CONFIG = {
+  SAVE_STATE_TIMEOUT: 5000,
 } as const;
 
 export const EXCEL_CONFIG = {

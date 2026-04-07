@@ -12,8 +12,10 @@ import fs from 'fs';
 import { spawn, ChildProcess, execFileSync } from 'child_process';
 import { logInfo, logError, logWarn } from './logger';
 import { getPythonScriptPath, getPythonBinaryPath, getPythonBinaryDirectory, getLogDirectory, isAppPackaged } from './path-config';
-import { isWindows, isMac, getShortPathName, SYSTEM_CONFIG } from './platform';
+import { platform } from '../core/platform';
+import { SYSTEM_CONFIG, getShortPathName } from './platform';
 import { PROCESS_CONFIG } from '../shared/constants';
+import { validateTempPathSafety } from './utils/path-validator';
 
 function sanitizePathForLogging(filePath: string): string {
   if (!filePath || typeof filePath !== 'string') {
@@ -26,7 +28,7 @@ function sanitizePathForLogging(filePath: string): string {
       return filePath.replace(homeDir, '~');
     }
 
-    if (isWindows()) {
+    if (platform.isWindows()) {
       const userProfile = process.env.USERPROFILE;
       if (userProfile && filePath.toLowerCase().startsWith(userProfile.toLowerCase())) {
         return filePath.replace(userProfile, '~');
@@ -94,7 +96,7 @@ export class PythonBridge {
 
     if (isDev) {
       logInfo('[PythonBridge] 开发模式：使用系统 Python');
-      return isWindows() ? 'python' : 'python3';
+      return platform.isWindows() ? 'python' : 'python3';
     }
 
     const binaryPath = getPythonBinaryPath();
@@ -104,7 +106,7 @@ export class PythonBridge {
     }
 
     logWarn('[PythonBridge] 二进制不存在，回退到 Python 脚本');
-    return isWindows() ? 'python' : 'python3';
+    return platform.isWindows() ? 'python' : 'python3';
   }
 
   private getScriptPath(): string {
@@ -148,9 +150,9 @@ export class PythonBridge {
       IMAGE_INSERTER_LOG_DIR: getLogDirectory(),
     };
 
-    if (isWindows()) {
+    if (platform.isWindows()) {
       bridgeEnv.PATH = SYSTEM_CONFIG.process.envPathSetup + ';' + (process.env.PATH || '');
-    } else if (isMac()) {
+    } else if (platform.isMac()) {
       bridgeEnv.PATH = SYSTEM_CONFIG.process.envPathSetup + ':' + (process.env.PATH || '/usr/bin:/bin:/usr/sbin:/sbin');
     }
 
@@ -172,7 +174,7 @@ export class PythonBridge {
       env: bridgeEnv,
     };
 
-    if (isWindows() && scriptCwd) {
+    if (platform.isWindows() && scriptCwd) {
       const shortCwd = getShortPathName(scriptCwd);
       if (shortCwd !== scriptCwd) {
         logInfo(`[PythonBridge] 使用短路径: ${shortCwd}`);
@@ -197,8 +199,8 @@ export class PythonBridge {
     const timeoutHandle = setTimeout(() => {
       logWarn(`[PythonBridge] 进程超时（${PROCESS_CONFIG.TIMEOUT_MS / 1000 / 60}分钟），强制终止`);
       if (!proc.killed) {
-        // Windows 不支持 POSIX 信號，使用默認 kill()
-        if (isWindows()) {
+        // Windows 不支持 POSIX 信号，使用默认 kill()
+        if (platform.isWindows()) {
           proc.kill();
         } else {
           proc.kill('SIGKILL');
@@ -278,7 +280,7 @@ export class PythonBridge {
 
         logInfo('[PythonBridge] 终止进程');
 
-        if (isWindows() && self.currentPid) {
+        if (platform.isWindows() && self.currentPid) {
           try {
             execFileSync('taskkill', ['/pid', String(self.currentPid), '/T', '/F'], {
               encoding: 'utf-8',
@@ -370,59 +372,80 @@ export class PythonBridge {
     }
   }
 
+  public _killProcessByPid(pid: number | null | undefined): void {
+    if (!pid) {
+      return;
+    }
+
+    if (platform.isWindows()) {
+      try {
+        execFileSync('taskkill', ['/pid', String(pid), '/T', '/F'], {
+          encoding: 'utf-8',
+          timeout: PROCESS_CONFIG.KILL_TIMEOUT_MS,
+        });
+        logInfo('[PythonBridge] taskkill 终止成功');
+      } catch (e) {
+        const err = e as Error;
+        logError(`[PythonBridge] taskkill 失败: ${err?.message || String(e)}`);
+      }
+    } else {
+      try {
+        process.kill(pid, 'SIGTERM');
+        setTimeout(() => {
+          try {
+            process.kill(pid, 'SIGKILL');
+          } catch {
+            // 进程可能已经退出
+          }
+        }, PROCESS_CONFIG.KILL_TIMEOUT_MS);
+      } catch (e) {
+        logError(`[PythonBridge] kill 信号失败: ${String(e)}`);
+      }
+    }
+  }
+
+  public _killProcessByProc(proc: ChildProcess, timeoutMs: number): void {
+    if (platform.isWindows()) {
+      try {
+        proc.kill();
+      } catch (sigtermError) {
+        logError(`[PythonBridge] kill 失败: ${String(sigtermError)}`);
+      }
+    } else {
+      try {
+        proc.kill('SIGTERM');
+        const killTimeout = setTimeout(() => {
+          if (!proc.killed) {
+            try {
+              proc.kill('SIGKILL');
+            } catch (sigkillError) {
+              logError(`[PythonBridge] SIGKILL 失败: ${String(sigkillError)}`);
+            }
+          }
+        }, timeoutMs);
+
+        proc.once('exit', () => {
+          clearTimeout(killTimeout);
+        });
+      } catch (sigtermError) {
+        logError(`[PythonBridge] SIGTERM 失败: ${String(sigtermError)}`);
+      }
+    }
+  }
+
   killCurrentProcess(): void {
     this.cleanupFileWatcher();
 
     if (this.currentProcess && !this.currentProcess.killed) {
       logInfo(`[PythonBridge] 终止当前进程 (PID: ${this.currentPid})`);
 
-      if (isWindows() && this.currentPid) {
-        // Windows: 使用 taskkill 强制终止进程树
-        try {
-          execFileSync('taskkill', ['/pid', String(this.currentPid), '/T', '/F'], {
-            encoding: 'utf-8',
-            timeout: PROCESS_CONFIG.KILL_TIMEOUT_MS,
-          });
-          logInfo('[PythonBridge] taskkill 终止成功');
-        } catch (e) {
-          const err = e as Error;
-          logError(`[PythonBridge] taskkill 失败: ${err?.message || String(e)}`);
-          // 备用方案：尝试 SIGTERM
-          try {
-            this.currentProcess.kill('SIGTERM');
-          } catch (sigtermError) {
-            logError(`[PythonBridge] SIGTERM 失败: ${String(sigtermError)}`);
-          }
-        }
+      if (platform.isWindows() && this.currentPid) {
+        this._killProcessByPid(this.currentPid);
       } else {
-        // macOS/Linux: 先尝试 SIGTERM，超时后使用 SIGKILL
-        try {
-          this.currentProcess.kill('SIGTERM');
-          logInfo('[PythonBridge] SIGTERM 信号已发送');
-
-          // 等待进程退出，超时后强制终止
-          const killTimeout = setTimeout(() => {
-            if (this.currentProcess && !this.currentProcess.killed) {
-              logWarn('[PythonBridge] 进程未响应 SIGTERM，强制终止');
-              try {
-                this.currentProcess.kill('SIGKILL');
-              } catch (sigkillError) {
-                logError(`[PythonBridge] SIGKILL 失败: ${String(sigkillError)}`);
-              }
-            }
-          }, PROCESS_CONFIG.KILL_TIMEOUT_MS);
-
-          // 监听进程退出，清理定时器
-          this.currentProcess.once('exit', () => {
-            clearTimeout(killTimeout);
-          });
-        } catch (sigtermError) {
-          logError(`[PythonBridge] SIGTERM 失败: ${String(sigtermError)}`);
-        }
+        this._killProcessByProc(this.currentProcess, PROCESS_CONFIG.KILL_TIMEOUT_MS);
       }
     }
 
-    // 重置状态
     this.currentProcess = null;
     this.currentPid = null;
     logInfo('[PythonBridge] 进程状态已重置');
@@ -435,14 +458,18 @@ class BufferAccumulator {
 
   append(data: Buffer): void {
     const chunk = data.toString();
-    if (this.buffer.length + chunk.length > this.maxSize) {
-      logWarn('[BufferAccumulator] 缓冲区达到上限，截断旧数据');
-      const overflow = (this.buffer.length + chunk.length) - this.maxSize;
-      if (overflow > 0 && this.buffer.length > overflow) {
-        this.buffer = this.buffer.slice(overflow);
+    const projectedSize = this.buffer.length + chunk.length;
+
+    if (projectedSize > this.maxSize) {
+      if (chunk.length >= this.maxSize) {
+        this.buffer = chunk.slice(-this.maxSize);
+      } else {
+        const excess = projectedSize - this.maxSize;
+        this.buffer = this.buffer.slice(excess) + chunk;
       }
+    } else {
+      this.buffer += chunk;
     }
-    this.buffer += chunk;
   }
 
   extractLines(): string[] {
@@ -462,47 +489,13 @@ class BufferAccumulator {
 
 export const pythonBridge = new PythonBridge();
 
-export function killProcess(proc: ChildProcess, pid: number | null | undefined): void {
+export function killProcessByPid(proc: ChildProcess, pid: number | null | undefined): void {
   if (!proc || proc.killed) {
     return;
   }
 
-  logInfo('[Process] 终止进程');
-
-  if (isWindows() && pid) {
-    try {
-      execFileSync('taskkill', ['/pid', String(pid), '/T', '/F'], {
-        encoding: 'utf-8',
-        timeout: PROCESS_CONFIG.KILL_TIMEOUT_MS,
-      });
-      logInfo('[Process] taskkill 终止成功');
-    } catch (e) {
-      const err = e as Error;
-      logError(`[Process] taskkill 终止失败: ${err?.message || String(e)}`);
-      try {
-        proc.kill('SIGTERM');
-      } catch (sigtermError) {
-        logError(`[Process] SIGTERM 终止失败: ${String(sigtermError)}`);
-      }
-    }
-  } else {
-    try {
-      proc.kill('SIGTERM');
-    } catch (sigtermError) {
-      logError(`[Process] SIGTERM 终止失败: ${String(sigtermError)}`);
-    }
-
-    setTimeout(() => {
-      if (proc && !proc.killed) {
-        logWarn('[Process] 强制终止进程');
-        try {
-          proc.kill('SIGKILL');
-        } catch (sigkillError) {
-          logError(`[Process] SIGKILL 终止失败: ${String(sigkillError)}`);
-        }
-      }
-    }, PROCESS_CONFIG.KILL_TIMEOUT_MS);
-  }
+  pythonBridge._killProcessByPid(pid);
+  pythonBridge._killProcessByProc(proc, PROCESS_CONFIG.KILL_TIMEOUT_MS);
 }
 
 const registeredTempDirs = new Set<string>();
@@ -511,59 +504,42 @@ export function registerTempDir(dirPath: string): void {
   registeredTempDirs.add(dirPath);
 }
 
-export function cleanupAllTemp(): void {
+export async function cleanupAllTemp(): Promise<void> {
   if (registeredTempDirs.size === 0) {
     return;
   }
 
-  const fs = require('fs');
-  const path = require('path');
+  const fsPromises = require('fs').promises;
+  const pathModule = require('path');
+  const tempBase = pathModule.normalize(os.tmpdir());
+
+  const cleanupPromises: Promise<void>[] = [];
 
   for (const tempDir of registeredTempDirs) {
+    const safetyResult = validateTempPathSafety(tempDir, tempBase);
+
+    if (!safetyResult.valid) {
+      logWarn(`[Cleanup] 跳过不安全路径: ${safetyResult.error}`);
+      continue;
+    }
+
+    const normalizedPath = safetyResult.resolvedPath!;
+
     try {
-      // 驗證路徑安全性
-      if (!tempDir || typeof tempDir !== 'string') {
-        logWarn(`[Cleanup] 跳過無效路徑: ${tempDir}`);
-        continue;
-      }
-
-      const resolvedPath = path.resolve(tempDir);
-      const normalizedPath = path.normalize(resolvedPath);
-
-      // 必須是絕對路徑
-      if (!path.isAbsolute(normalizedPath)) {
-        logWarn(`[Cleanup] 跳過非絕對路徑: ${tempDir}`);
-        continue;
-      }
-
-      // 檢查路徑遍歷
-      const pathParts = normalizedPath.split(path.sep);
-      if (pathParts.includes('..')) {
-        logWarn(`[Cleanup] 跳過包含遍歷序列的路徑: ${tempDir}`);
-        continue;
-      }
-
-      // 驗證路徑在臨時目錄範圍內
-      const tempBase = path.normalize(os.tmpdir()).toLowerCase();
-      const normalizedLower = normalizedPath.toLowerCase();
-      if (!normalizedLower.startsWith(tempBase)) {
-        logWarn(`[Cleanup] 跳過不在臨時目錄範圍內的路徑: ${tempDir}`);
-        continue;
-      }
-
-      if (fs.existsSync(normalizedPath)) {
-        // 使用 fs.rmSync 安全刪除，避免 shell 注入
-        try {
-          fs.rmSync(normalizedPath, { recursive: true, force: true });
-          logInfo(`[Cleanup] 成功刪除: ${normalizedPath}`);
-        } catch (fsError) {
-          logError(`[Cleanup] 刪除失敗: ${normalizedPath}, 錯誤: ${String(fsError)}`);
-        }
+      const exists = fsPromises.access(normalizedPath).then(() => true).catch(() => false);
+      if (await exists) {
+        cleanupPromises.push(
+          fsPromises.rm(normalizedPath, { recursive: true, force: true })
+            .then(() => logInfo(`[Cleanup] 成功删除: ${normalizedPath}`))
+            .catch((fsError: Error) => logError(`[Cleanup] 删除失败: ${normalizedPath}, 错误: ${fsError.message}`))
+        );
       }
     } catch (error) {
-      logError(`[Cleanup] 清理臨時目錄失敗: ${tempDir}, 錯誤: ${String(error)}`);
+      logError(`[Cleanup] 清理临时目录失败: ${tempDir}, 错误: ${String(error)}`);
     }
   }
+
+  await Promise.allSettled(cleanupPromises);
 
   registeredTempDirs.clear();
   logInfo('[Cleanup] All registered temp directories cleared');

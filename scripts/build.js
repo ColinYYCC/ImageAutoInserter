@@ -1,6 +1,43 @@
 const fs = require('fs');
 const path = require('path');
 
+function getVersionFromPackageJson() {
+  const packageJsonPath = path.join(__dirname, '..', 'package.json');
+  const packageData = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+  return packageData.version;
+}
+
+function syncVersion() {
+  const version = getVersionFromPackageJson();
+  const parts = version.split('.');
+  const major = parseInt(parts[0], 10);
+  const minor = parseInt(parts[1], 10);
+  const patch = parseInt(parts[2], 10);
+
+  const versionPyPath = path.join(__dirname, '..', 'src', 'version.py');
+  const content = `"""
+中央版本定义模块
+
+所有模块从这里导入版本信息，确保版本一致性
+"""
+
+__version__ = "${version}"
+__release_date__ = "${new Date().toISOString().split('T')[0]}"
+__author__ = "ImageAutoInserter Team"
+
+VERSION_INFO = {
+    "major": ${major},
+    "minor": ${minor},
+    "patch": ${patch},
+    "string": __version__,
+    "release_date": __release_date__,
+    "author": __author__,
+}
+`;
+  fs.writeFileSync(versionPyPath, content, 'utf-8');
+  console.log(`✓ Version synced to ${version}`);
+}
+
 function copyDir(src, dest, extensions) {
   if (!fs.existsSync(dest)) {
     fs.mkdirSync(dest, { recursive: true });
@@ -46,6 +83,10 @@ const args = process.argv.slice(2);
 const command = args[0];
 
 switch (command) {
+  case 'sync-version':
+    syncVersion();
+    break;
+
   case 'copy-python':
     ensureDir('dist/python');
     copyFile('src/cli.py', 'dist/python/cli.py');
@@ -63,7 +104,7 @@ switch (command) {
 
   case 'copy-node-modules':
     ensureDir('dist/main/node_modules');
-    const modules = ['node-unrar-js', 'unrar-promise', 'exceljs', '7zip-min', '7zip-bin'];
+    const modules = ['node-unrar-js', 'exceljs', '7zip-min', '7zip-bin'];
     for (const mod of modules) {
       const srcPath = `node_modules/${mod}`;
       const destPath = `dist/main/node_modules/${mod}`;

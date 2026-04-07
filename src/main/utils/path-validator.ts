@@ -6,7 +6,7 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
-import { isWindows } from '../platform';
+import { platform } from '../../core/platform';
 
 export interface PathValidationResult {
   valid: boolean;
@@ -20,6 +20,12 @@ export interface PathValidationOptions {
   requireExists?: boolean;
   allowHidden?: boolean;
   checkWritable?: boolean;
+}
+
+export interface TempPathValidationResult {
+  valid: boolean;
+  error?: string;
+  resolvedPath?: string;
 }
 
 const DEFAULT_MAX_PATH_LENGTH = 200;
@@ -63,7 +69,7 @@ export function validateFilePath(
     };
   }
 
-  const effectiveMaxLength = isWindows()
+  const effectiveMaxLength = platform.isWindows()
     ? Math.min(maxLength, WINDOWS_MAX_PATH_LENGTH)
     : maxLength;
 
@@ -160,7 +166,7 @@ export function validateDirectoryPath(
     };
   }
 
-  const effectiveMaxLength = isWindows()
+  const effectiveMaxLength = platform.isWindows()
     ? Math.min(maxLength, WINDOWS_MAX_PATH_LENGTH)
     : maxLength;
 
@@ -269,8 +275,137 @@ export function suggestAlternativePath(longPath: string): string {
   const ext = path.extname(longPath);
   const basename = path.basename(longPath, ext);
 
-  const maxBasenameLength = isWindows() ? 50 : 100;
+  const maxBasenameLength = platform.isWindows() ? 50 : 100;
   const truncatedBasename = basename.substring(0, maxBasenameLength);
 
   return path.join(dir, `${truncatedBasename}${ext}`);
+}
+
+export function validateNoTraversal(filePath: string): PathValidationResult {
+  if (!filePath || typeof filePath !== 'string') {
+    return { valid: false, error: '路径不能为空' };
+  }
+
+  const normalizedPath = path.normalize(filePath);
+  const pathParts = normalizedPath.split(path.sep);
+
+  if (pathParts.includes('..')) {
+    return {
+      valid: false,
+      error: '路径包含非法遍历序列',
+      suggestion: '不允许使用 .. 遍历父目录'
+    };
+  }
+
+  return { valid: true, path: normalizedPath };
+}
+
+export function validateAbsolute(filePath: string): PathValidationResult {
+  if (!filePath || typeof filePath !== 'string') {
+    return { valid: false, error: '路径不能为空' };
+  }
+
+  const normalizedPath = path.normalize(path.resolve(filePath));
+
+  if (!path.isAbsolute(normalizedPath)) {
+    return {
+      valid: false,
+      error: '只支持绝对路径',
+      suggestion: '请使用完整的文件路径'
+    };
+  }
+
+  return { valid: true, path: normalizedPath };
+}
+
+export function validateTempPathSafety(
+  tempPath: string,
+  tempBaseDir?: string
+): TempPathValidationResult {
+  if (!tempPath || typeof tempPath !== 'string') {
+    return { valid: false, error: '路径无效' };
+  }
+
+  const resolvedPath = path.resolve(tempPath);
+  const normalizedPath = path.normalize(resolvedPath);
+
+  if (!path.isAbsolute(normalizedPath)) {
+    return { valid: false, error: '非绝对路径' };
+  }
+
+  const pathParts = normalizedPath.split(path.sep);
+  if (pathParts.includes('..')) {
+    return { valid: false, error: '包含遍历序列' };
+  }
+
+  if (tempBaseDir) {
+    const normalizedBase = path.normalize(tempBaseDir).toLowerCase();
+    const normalizedLower = normalizedPath.toLowerCase();
+    if (!normalizedLower.startsWith(normalizedBase)) {
+      return { valid: false, error: '路径不在临时目录范围内' };
+    }
+  }
+
+  return { valid: true, resolvedPath: normalizedPath };
+}
+
+export function validateProcessPath(
+  filePath: string,
+  type: 'excel' | 'image'
+): { valid: boolean; error?: string } {
+  if (!filePath || typeof filePath !== 'string') {
+    return { valid: false, error: '路径不能为空' };
+  }
+
+  if (filePath.includes('..')) {
+    return { valid: false, error: '路径包含非法序列' };
+  }
+
+  const resolvedPath = path.resolve(filePath);
+  const normalizedPath = path.normalize(resolvedPath);
+
+  if (!path.isAbsolute(normalizedPath)) {
+    return { valid: false, error: '只支持绝对路径' };
+  }
+
+  let realPath: string;
+  try {
+    realPath = fs.realpathSync(normalizedPath);
+  } catch {
+    realPath = normalizedPath;
+  }
+
+  const realPathLower = realPath.toLowerCase();
+  const systemPathPrefixes = [
+    'c:\\windows', 'c:\\program files', 'c:\\program files (x86)',
+    '/applications', '/library', '/system', '/private/etc', '/private/tmp',
+    '/private/var', '/system/library', '/system/application support'
+  ];
+  for (const prefix of systemPathPrefixes) {
+    if (realPathLower.startsWith(prefix)) {
+      return { valid: false, error: '不允许访问系统目录' };
+    }
+  }
+
+  const pathParts = normalizedPath.split(path.sep);
+  if (pathParts.includes('..')) {
+    return { valid: false, error: '路径包含非法序列' };
+  }
+
+  const ext = path.extname(normalizedPath).toLowerCase();
+  if (type === 'excel' && ext !== '.xlsx') {
+    return { valid: false, error: 'Excel 文件必须是 .xlsx 格式' };
+  }
+  if (type === 'image' && !['.zip', '.rar', '.7z', ''].includes(ext)) {
+    const stat = fs.statSync(normalizedPath);
+    if (!stat.isDirectory()) {
+      return { valid: false, error: '图片来源必须是文件夹或压缩文件' };
+    }
+  }
+
+  if (!fs.existsSync(normalizedPath)) {
+    return { valid: false, error: '文件不存在' };
+  }
+
+  return { valid: true };
 }

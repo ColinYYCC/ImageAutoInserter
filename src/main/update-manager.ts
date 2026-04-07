@@ -2,6 +2,7 @@ import { autoUpdater, UpdateInfo, ProgressInfo } from 'electron-updater';
 import { BrowserWindow, app } from 'electron';
 import { logInfo, logError } from './logger';
 import { withRetry, CircuitBreaker, ErrorRecoveryManager } from './retry-handler';
+import { UPDATE_CONFIG } from '../shared/constants';
 
 export interface UpdateState {
   checking: boolean;
@@ -29,8 +30,6 @@ export class UpdateManager {
   private circuitBreaker = new CircuitBreaker(5, 60000);
   // 后台定时检查定时器
   private periodicCheckTimer: NodeJS.Timeout | null = null;
-  // 用户状态保存超时时间（毫秒）
-  private readonly SAVE_STATE_TIMEOUT = 5000;
 
   constructor() {
     if (process.env.DISABLE_AUTO_UPDATE === 'true' || !app.isPackaged) {
@@ -108,20 +107,12 @@ export class UpdateManager {
   private setupErrorRecovery(): void {
     const recoveryManager = ErrorRecoveryManager.getInstance();
 
-    if (!recoveryManager) {
-      logInfo('ℹ️ 错误恢复管理器暂不可用，跳过错误恢复设置');
-      return;
-    }
-
-    // 注册网络错误恢复策略
     recoveryManager.registerStrategy('network_error', async () => {
       logInfo('🔄 尝试恢复网络错误...');
-      // 等待一段时间后重试
       await new Promise(resolve => setTimeout(resolve, 5000));
       return true;
     });
 
-    // 注册服务器错误恢复策略
     recoveryManager.registerStrategy('server_error', async () => {
       logInfo('🔄 服务器错误，等待后重试...');
       await new Promise(resolve => setTimeout(resolve, 10000));
@@ -236,11 +227,8 @@ export class UpdateManager {
       this.state.error = '更新服务器暂时不可用，请稍后重试';
       this.notifyRenderer('update-error', { error: this.state.error });
 
-      // 尝试错误恢复
       const recoveryManager5xx = ErrorRecoveryManager.getInstance();
-      if (recoveryManager5xx) {
-        await recoveryManager5xx.recover('server_error');
-      }
+      await recoveryManager5xx.recover('server_error');
       return;
     }
 
@@ -250,11 +238,8 @@ export class UpdateManager {
       this.state.error = '网络连接超时，请检查网络后重试';
       this.notifyRenderer('update-error', { error: this.state.error });
 
-      // 尝试错误恢复
       const recoveryManagerTimeout = ErrorRecoveryManager.getInstance();
-      if (recoveryManagerTimeout) {
-        await recoveryManagerTimeout.recover('network_error');
-      }
+      await recoveryManagerTimeout.recover('network_error');
       return;
     }
 
@@ -319,7 +304,7 @@ export class UpdateManager {
     // 1. 通知渲染进程保存用户工作状态
     this.notifyRenderer('update-will-install', { 
       message: '应用即将更新并重启，请保存您的工作',
-      timeout: this.SAVE_STATE_TIMEOUT 
+      timeout: UPDATE_CONFIG.SAVE_STATE_TIMEOUT 
     });
     
     logInfo('⏳ 等待用户状态保存...');
@@ -333,7 +318,7 @@ export class UpdateManager {
       
       // 执行更新安装
       autoUpdater.quitAndInstall();
-    }, this.SAVE_STATE_TIMEOUT);
+    }, UPDATE_CONFIG.SAVE_STATE_TIMEOUT);
   }
 
   /**

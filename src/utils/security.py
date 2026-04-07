@@ -24,9 +24,6 @@ class SecurityValidator:
 
     DANGEROUS_PATTERNS = [
         r'\.\.',
-        r'^/etc',
-        r'^/proc',
-        r'^/sys',
         r'C:\\Windows',
         r'C:\\Program Files',
     ]

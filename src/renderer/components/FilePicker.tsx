@@ -1,8 +1,11 @@
 import React, { memo, useState, useCallback } from 'react';
 import styles from './FilePicker.module.css';
 import { FileInfo } from '../../shared/types';
+import { createLogger } from '../../shared/logger';
 import { getFriendlyError, getErrorByType, ErrorType } from '../utils/errorHandler';
 import { CheckCircleIcon, XCircleIcon } from './Icons';
+
+const logger = createLogger('FilePicker');
 
 interface FilePickerProps {
   step: number;
@@ -155,7 +158,7 @@ const FilePicker: React.FC<FilePickerProps> = memo(({
       if (!window.electronAPI?.selectFile) {
         const errorInfo = getErrorByType(ErrorType.API_NOT_AVAILABLE);
         setValidationError(errorInfo);
-        console.error('[FilePicker] electronAPI.selectFile 不可用');
+        logger.error('electronAPI.selectFile 不可用');
         return;
       }
 
@@ -165,7 +168,7 @@ const FilePicker: React.FC<FilePickerProps> = memo(({
         await validateFile(file);
       }
     } catch (error) {
-      console.error('[FilePicker] 文件选择失败:', error);
+      logger.error('文件选择失败', { error: String(error) });
       const errorInfo = getFriendlyError(error);
       setValidationError(errorInfo);
     }

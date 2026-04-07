@@ -1,3 +1,5 @@
+import { logWarn, logError } from './logger';
+
 export interface RetryConfig {
   maxAttempts: number;
   initialDelayMs: number;
@@ -133,14 +135,14 @@ export class ErrorRecoveryManager {
   async recover(errorType: string): Promise<boolean> {
     const strategy = this.recoveryStrategies.get(errorType);
     if (!strategy) {
-      console.warn(`No recovery strategy for error type: ${errorType}`);
+      logWarn(`[ErrorRecovery] No recovery strategy for error type: ${errorType}`);
       return false;
     }
 
     try {
       return await strategy();
     } catch (e) {
-      console.error(`Recovery strategy failed:`, e);
+      logError(`[ErrorRecovery] Recovery strategy failed: ${String(e)}`);
       return false;
     }
   }

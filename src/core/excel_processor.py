@@ -497,15 +497,16 @@ class ExcelProcessor:
         # 重命名已存在列
         self._rename_existing_columns(worksheet, mapper, base_word)
 
-        # 更新映射器中的列信息
-        for idx, number in enumerate(needed_numbers):
-            column_num = start_column + idx
-            picture_name = f"{base_word} {number}"
-            mapper.existing_columns[number] = column_num
-            mapper.original_headers[number] = picture_name
-
-        # 获取最终的已存在列
-        final_existing_columns = mapper.to_picture_columns()
+        # 获取真正的已存在列（不包括新添加的列）
+        final_existing_columns = []
+        for number, col_idx in sorted(mapper.existing_columns.items()):
+            if col_idx < start_column or number not in needed_numbers:
+                final_existing_columns.append(PictureColumn(
+                    number=number,
+                    original_header=mapper.original_headers.get(number, ""),
+                    column_index=col_idx,
+                    is_existing=True
+                ))
 
         return ColumnAdditionResult(
             added_columns=added_columns,

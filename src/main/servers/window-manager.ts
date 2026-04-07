@@ -3,10 +3,8 @@ import { logInfo, logError } from '../logger';
 import { performanceMonitor } from '../performance-monitor';
 import { updateManager } from '../update-manager';
 import { getPreloadScriptPath, getRendererHtmlPath } from '../path-config';
-import { initializeDevServer, startConnectionHealthCheck, cleanupViteProcess } from './dev-server-manager';
 
 let mainWindow: BrowserWindow | null = null;
-let devServerPort = 5173;
 
 export function getMainWindow(): BrowserWindow | null {
   return mainWindow;
@@ -14,16 +12,6 @@ export function getMainWindow(): BrowserWindow | null {
 
 export function createMainWindow(): Promise<BrowserWindow> {
   return new Promise(async (resolve, reject) => {
-    if (process.env.NODE_ENV === 'development') {
-      try {
-        devServerPort = await initializeDevServer();
-      } catch (error) {
-        logError(`❌ Failed to initialize dev server: ${error}`);
-        reject(error);
-        return;
-      }
-    }
-
     const preloadPath = getPreloadScriptPath();
 
     const window = new BrowserWindow({
@@ -37,46 +25,60 @@ export function createMainWindow(): Promise<BrowserWindow> {
         contextIsolation: true,
         preload: preloadPath,
       },
-      show: true,
-      title: '图片自动插入工具'
+      show: false,
+      title: '图片自动插入工具',
+      center: true,
+      backgroundColor: '#FAFAF9',
     });
 
     mainWindow = window;
 
+    const ensureWindowVisible = () => {
+      const { screen } = require('electron');
+      const displays = screen.getAllDisplays();
+      const windowBounds = window.getBounds();
+      const primaryDisplay = screen.getPrimaryDisplay();
+
+      let isVisible = false;
+      for (const display of displays) {
+        const { x, y, width, height } = display.bounds;
+        if (
+          windowBounds.x >= x &&
+          windowBounds.y >= y &&
+          windowBounds.x + windowBounds.width <= x + width &&
+          windowBounds.y + windowBounds.height <= y + height
+        ) {
+          isVisible = true;
+          break;
+        }
+      }
+
+      if (!isVisible) {
+        const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+        const newX = Math.round((screenWidth - windowBounds.width) / 2);
+        const newY = Math.round((screenHeight - windowBounds.height) / 2);
+        window.setBounds({ x: newX, y: newY, width: windowBounds.width, height: windowBounds.height });
+      }
+    };
+
     performanceMonitor.recordMemory('app', 'window_created');
     performanceMonitor.recordMetric('app', 'window_create_time', Date.now() - performanceMonitor.getReport().appStartTime, 'ms');
 
-    if (process.env.NODE_ENV === 'development') {
-      logInfo(`🚀 Loading dev server from http://localhost:${devServerPort}`);
-
-      window.show();
+    if (process.env.VITE_DEV_SERVER_URL) {
+      logInfo(`🚀 Loading dev server from ${process.env.VITE_DEV_SERVER_URL}`);
 
       const loadTimeout = setTimeout(() => {
         logError('❌ Timeout loading dev server');
         dialog.showErrorBox('加载失败', '加载开发服务器超时（30秒）');
       }, 30000);
 
-      window.loadURL(`http://localhost:${devServerPort}`)
+      window.loadURL(process.env.VITE_DEV_SERVER_URL)
         .then(() => {
           clearTimeout(loadTimeout);
           logInfo('✅ Dev server loaded successfully');
+          window.show();
+          window.webContents.openDevTools();
           performanceMonitor.logStartupSummary();
-
-          startConnectionHealthCheck(
-            devServerPort,
-            () => {
-              if (mainWindow && !mainWindow.isDestroyed()) {
-                dialog.showErrorBox(
-                  '开发服务器断开',
-                  'Vite 开发服务器已断开连接。\n\n请重启应用以重新连接。'
-                );
-              }
-            },
-            () => {
-              logInfo('✅ Vite connection recovered');
-            }
-          );
-
           resolve(window);
         })
         .catch((err) => {
@@ -85,10 +87,6 @@ export function createMainWindow(): Promise<BrowserWindow> {
           dialog.showErrorBox('加载失败', `无法加载应用界面。\n\n错误信息：${err.message}`);
           reject(err);
         });
-
-      if (process.env.OPEN_DEVTOOLS === 'true') {
-        window.webContents.openDevTools();
-      }
     } else {
       const htmlPath = getRendererHtmlPath();
       logInfo(`📄 加载渲染进程: ${htmlPath}`);
@@ -103,6 +101,8 @@ export function createMainWindow(): Promise<BrowserWindow> {
 
       window.webContents.on('did-finish-load', () => {
         logInfo('✅ 渲染进程加载完成');
+        ensureWindowVisible();
+        window.show();
         setTimeout(() => {
           logInfo('🔍 启动时检查更新...');
           updateManager.checkForUpdates();
@@ -126,7 +126,6 @@ export function createMainWindow(): Promise<BrowserWindow> {
 
     window.on('closed', () => {
       logInfo('🪟 Main window closed');
-      cleanupViteProcess();
       mainWindow = null;
     });
 

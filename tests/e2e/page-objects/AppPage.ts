@@ -11,8 +11,8 @@ export class AppPage {
     this.page = page;
     this.title = page.locator('h1');
     this.startButton = page.getByRole('button', { name: '开始处理' });
-    this.imageSourceSection = page.locator('text=图片来源路径').locator('..');
-    this.excelFileSection = page.locator('text=Excel 文件路径').locator('..');
+    this.imageSourceSection = page.locator('text=选择图片来源').locator('..');
+    this.excelFileSection = page.locator('text=选择 Excel').locator('..');
   }
 
   async goto() {
@@ -20,11 +20,15 @@ export class AppPage {
   }
 
   async selectImageSource() {
-    await this.imageSourceSection.getByRole('button', { name: '选择文件' }).click();
+    const browseButton = this.imageSourceSection.getByRole('button', { name: '浏览' });
+    await browseButton.waitFor({ state: 'visible', timeout: 5000 });
+    await browseButton.click();
   }
 
   async selectExcelFile() {
-    await this.excelFileSection.getByRole('button', { name: '选择文件' }).click();
+    const browseButton = this.excelFileSection.getByRole('button', { name: '浏览' });
+    await browseButton.waitFor({ state: 'visible', timeout: 5000 });
+    await browseButton.click();
   }
 
   async isStartButtonEnabled(): Promise<boolean> {

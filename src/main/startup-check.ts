@@ -102,7 +102,7 @@ export function validateWindowLoaded(window: Electron.BrowserWindow): Promise<bo
       });
 
       // 监听渲染进程崩溃
-      window.webContents.on('render-process-gone', (event, details) => {
+      window.webContents.on('render-process-gone', (_event, details) => {
         if (!resolved) {
           resolved = true;
           logError(`❌ 渲染进程终止: ${details.reason}`);

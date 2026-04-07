@@ -2,7 +2,8 @@ import { app } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import { toLongPath, isWindows } from './platform';
+import { toLongPath } from './platform';
+import { platform } from '../core/platform';
 import { safeAppendFile } from './utils/async-file';
 
 // 批處理日誌系統
@@ -242,7 +243,7 @@ export function getPythonScriptPath(): { scriptPath: string; cwd: string } {
 
 export function getPythonBinaryPath(): string | null {
   // Python 二进制文件通过 extraResources 复制到 resources/python-binary/
-  const binaryNames = isWindows()
+  const binaryNames = platform.isWindows()
     ? ['image-processor.exe', 'image-processor']
     : ['image-processor'];
 

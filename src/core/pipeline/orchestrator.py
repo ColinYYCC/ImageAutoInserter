@@ -7,7 +7,7 @@
 import logging
 import time
 import threading
-from typing import Optional, Callable, List, Dict, Set
+from typing import Optional, Callable, List, Dict
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -69,6 +69,8 @@ class ProcessOrchestrator:
     ROWS_PER_PROGRESS = ProcessingConfig.PROGRESS_INTERVAL
     # 每处理 20 行报告一次进度（分批报告，避免频繁回调）
     BATCH_REPORT_SIZE = 20
+    # 每批预加载的商品数量
+    PRELOAD_BATCH_SIZE = 100
 
     def __init__(self) -> None:
         self._image_processor = ImageProcessor()
@@ -205,13 +207,34 @@ class ProcessOrchestrator:
             )
 
             picture_columns = self._setup_picture_columns(excel, ctx.matcher)
+
+            ctx.reporter.report_progress(
+                percentage=22.0,
+                current_row=0,
+                total_rows=ctx.result.total_rows,
+                current_action="配置Picture列..."
+            )
+
             column_for_picture = self._build_column_mapping(picture_columns)
+
+            ctx.reporter.report_progress(
+                percentage=24.0,
+                current_row=0,
+                total_rows=ctx.result.total_rows,
+                current_action="预加载图片..."
+            )
 
             empty_product_rows = self._process_data_rows(
                 excel, sheet_info, ctx, column_for_picture, picture_columns
             )
 
             if empty_product_rows:
+                ctx.reporter.report_progress(
+                    percentage=88.0,
+                    current_row=0,
+                    total_rows=ctx.result.total_rows,
+                    current_action=f"高亮标记 {len(empty_product_rows)} 个空编码..."
+                )
                 excel.highlight_empty_product_codes(empty_product_rows)
                 self._log(ctx.log_callback, f"✅ 高亮完成，共高亮 {len(empty_product_rows)} 个商品编码")
 
@@ -240,7 +263,7 @@ class ProcessOrchestrator:
         column_for_picture: Dict[int, Optional[str]],
         picture_columns: Dict[str, int]
     ) -> List[int]:
-        """处理数据行"""
+        """处理数据行（使用并行预加载优化）"""
         empty_product_rows: List[int] = []
         start_time = time.time()
         total_rows = len(sheet_info.data_rows)
@@ -248,57 +271,84 @@ class ProcessOrchestrator:
 
         safe_reporter = ThreadSafeProgressReporter(ctx.reporter._progress_callback)
 
-        # 预处理：记录每个商品编码的最后出现位置，用于内存释放
         code_last_occurrence: Dict[str, int] = {}
         for idx, row in enumerate(sheet_info.data_rows, start=1):
             product_code = excel.get_product_code(row)
             if product_code:
                 code_last_occurrence[product_code] = idx
 
-        for idx, row in enumerate(sheet_info.data_rows, start=1):
-            product_code = excel.get_product_code(row)
-            if not product_code:
-                self._log(ctx.log_callback, f"⚠️  行 {row}：商品编码为空，跳过")
-                ctx.result.skipped_rows += 1
-                continue
+        preload_cache: Dict[str, Dict[int, bytes]] = {}
 
-            # 分批报告进度：每 N 行或最后一行报告
-            should_report = (
-                idx == total_rows or
-                idx % batch_report_size == 0
-            )
+        for batch_start in range(0, len(sheet_info.data_rows), self.PRELOAD_BATCH_SIZE):
+            batch_end = min(batch_start + self.PRELOAD_BATCH_SIZE, len(sheet_info.data_rows))
+            batch_rows = sheet_info.data_rows[batch_start:batch_end]
 
-            if should_report:
-                row_progress = (idx / total_rows) * 45
-                adjusted_percentage = 25.0 + row_progress
-                current_time = time.time()
-                elapsed = current_time - start_time
+            batch_codes = list(set(
+                code for code in (
+                    excel.get_product_code(row)
+                    for row in batch_rows
+                )
+                if code
+            ))
 
-                safe_reporter.report(ProgressInfo(
-                    current_row=row,
-                    total_rows=total_rows,
-                    current_action=f"正在处理第 {idx}/{total_rows} 行",
-                    percentage=adjusted_percentage,
-                    estimated_remaining_seconds=elapsed,
-                    product_code=product_code
-                ))
+            codes_to_preload = [
+                code for code in batch_codes
+                if code not in preload_cache
+            ]
 
-            row_has_any_image = self._process_row_images(
-                excel, row, product_code, ctx.matcher, column_for_picture, picture_columns, ctx.log_callback
-            )
+            if codes_to_preload:
+                new_cache = ctx.matcher.preload_images_parallel(
+                    codes_to_preload,
+                    progress_callback=None
+                )
+                preload_cache.update(new_cache)
 
-            if not row_has_any_image:
-                empty_product_rows.append(row)
-                ctx.result.failed_rows += 1
-            else:
-                ctx.result.success_rows += 1
+            for idx, row in enumerate(batch_rows, start=batch_start + 1):
+                product_code = excel.get_product_code(row)
+                if not product_code:
+                    self._log(ctx.log_callback, f"⚠️  行 {row}：商品编码为空，跳过")
+                    ctx.result.skipped_rows += 1
+                    continue
 
-            # 只在商品的最后一次出现后才释放图片内存
-            if idx == code_last_occurrence.get(product_code):
-                for pic_col in range(1, 4):
-                    img_info = ctx.matcher.get_image(product_code, pic_col)
-                    if img_info:
-                        img_info.release()
+                should_report = (
+                    idx == total_rows or
+                    idx % batch_report_size == 0
+                )
+
+                if should_report:
+                    row_progress = (idx / total_rows) * 45
+                    adjusted_percentage = 25.0 + row_progress
+                    current_time = time.time()
+                    elapsed = current_time - start_time
+
+                    safe_reporter.report(ProgressInfo(
+                        current_row=row,
+                        total_rows=total_rows,
+                        current_action=f"正在处理第 {idx}/{total_rows} 行",
+                        percentage=adjusted_percentage,
+                        estimated_remaining_seconds=elapsed,
+                        product_code=product_code
+                    ))
+
+                row_has_any_image = self._process_row_images(
+                    excel, row, product_code, ctx.matcher,
+                    column_for_picture, picture_columns, ctx.log_callback,
+                    preload_cache.get(product_code)
+                )
+
+                if not row_has_any_image:
+                    empty_product_rows.append(row)
+                    ctx.result.failed_rows += 1
+                else:
+                    ctx.result.success_rows += 1
+
+                if idx == code_last_occurrence.get(product_code):
+                    if product_code in preload_cache:
+                        del preload_cache[product_code]
+                    for pic_col in range(1, 4):
+                        img_info = ctx.matcher.get_image(product_code, pic_col)
+                        if img_info:
+                            img_info.release()
 
         return empty_product_rows
 
@@ -310,9 +360,10 @@ class ProcessOrchestrator:
         matcher: ImageMatcher,
         column_for_picture: Dict[int, Optional[str]],
         picture_columns: Dict[str, int],
-        log_callback: Optional[Callable[[str], None]]
+        log_callback: Optional[Callable[[str], None]],
+        preloaded_data: Optional[Dict[int, bytes]] = None
     ) -> bool:
-        """处理单行的图片"""
+        """处理单行的图片（优先使用预加载的数据）"""
         row_has_any_image = False
 
         for picture_column in range(1, 4):
@@ -321,7 +372,12 @@ class ProcessOrchestrator:
             if not target_key:
                 continue
 
-            original_data = matcher.get_original_image_data(product_code, picture_column)
+            original_data: Optional[bytes] = None
+
+            if preloaded_data and picture_column in preloaded_data:
+                original_data = preloaded_data[picture_column]
+            else:
+                original_data = matcher.get_original_image_data(product_code, picture_column)
 
             if original_data:
                 row_has_any_image = True
@@ -336,22 +392,6 @@ class ProcessOrchestrator:
                 self._log(log_callback, f"⚠️  行{row} {product_code}: 无匹配图片，留空")
 
         return row_has_any_image
-
-    def _release_used_image_memory(
-        self,
-        matcher: ImageMatcher,
-        product_code: str
-    ) -> None:
-        """释放已处理商品的图片内存
-
-        Args:
-            matcher: 图片匹配器
-            product_code: 已处理的商品编码
-        """
-        for pic_col in range(1, 4):
-            img_info = matcher.get_image(product_code, pic_col)
-            if img_info:
-                img_info.release()
 
     def _save_and_finalize(self, excel: ExcelProcessor, ctx: ProcessContext) -> ProcessResult:
         """保存并完成处理"""

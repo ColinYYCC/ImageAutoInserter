@@ -1,47 +1,22 @@
 import { app, BrowserWindow } from 'electron';
-import path from 'path';
 import { setupIPCHandlers, initLogOnStartup } from './ipc-handlers';
-import { createMainWindow, showStartupError, focusMainWindow, getMainWindow } from './servers/window-manager';
-import { cleanupViteProcess, stopConnectionHealthCheck } from './servers/dev-server-manager';
-import { logInfo, logError, logWarn } from './logger';
+import { createMainWindow, showStartupError, focusMainWindow } from './servers/window-manager';
+import { logInfo, logError } from './logger';
 import { performanceMonitor } from './performance-monitor';
 import { cleanupAllTemp, pythonBridge } from './python-bridge';
-import { isWindows } from './platform';
+import { platform } from '../core/platform';
 import { performStartupCheck } from './startup-check';
-
-let electronReload: ((file: string, options?: object) => void) | null = null;
-if (process.env.NODE_ENV === 'development') {
-  try {
-    electronReload = require('electron-reload');
-  } catch {
-    logWarn('electron-reload not found, hot reload disabled');
-  }
-}
+import { securityBookmarkManager } from './utils/security-bookmark';
 
 let isQuitting = false;
 
 app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('disable-gpu');
 
-function setupElectronReload(): void {
-  // 禁用 electron-reload，因为它会阻止应用正常退出
-  // 如需热重载，请手动重启应用
-  logInfo('🔥 electron-reload 已禁用（防止退出问题）');
-}
-
 function performCleanup(): void {
   logInfo('🧹 Starting cleanup...');
 
-  // 停止连接健康检查
-  stopConnectionHealthCheck();
-
-  // 强制清理 Vite 进程
-  cleanupViteProcess(true);
-
-  // 终止 Python 子进程
   pythonBridge.killCurrentProcess();
-
-  // 清理临时目录
   cleanupAllTemp();
 
   logInfo('✅ Cleanup completed');
@@ -63,10 +38,14 @@ app.whenReady().then(async () => {
     focusMainWindow();
   });
 
-  initLogOnStartup();
+  await initLogOnStartup();
   logInfo('📱 App starting...');
 
-  // 执行启动自检
+  if (platform.isMac()) {
+    securityBookmarkManager.restoreAllBookmarks();
+    logInfo('✅ Security bookmarks restored');
+  }
+
   if (!performStartupCheck()) {
     app.quit();
     return;
@@ -78,7 +57,7 @@ app.whenReady().then(async () => {
     if (mainWindow) {
       setupIPCHandlers();
       logInfo('✅ IPC handlers registered');
-      setupElectronReload();
+      logInfo('🔥 热更新已启用 - 主进程修改后将自动重启');
     }
   } catch (err) {
     logError(`❌ Failed to create window: ${err}`);
@@ -92,11 +71,9 @@ app.on('window-all-closed', () => {
     return;
   }
 
-  // 所有平台：关闭所有窗口后退出应用
   logInfo('👋 All windows closed, quitting app');
   isQuitting = true;
 
-  // 开发模式：强制退出，确保 electron-reload 不会阻止退出
   if (process.env.NODE_ENV === 'development') {
     logInfo('👋 Development mode: force exit');
     app.exit(0);
@@ -111,6 +88,11 @@ app.on('before-quit', () => {
   }
   logInfo('🧹 App before-quit, performing cleanup...');
   isQuitting = true;
+  
+  if (platform.isMac()) {
+    securityBookmarkManager.stopAllAccesses();
+  }
+  
   performCleanup();
 });
 
@@ -119,7 +101,6 @@ app.on('will-quit', () => {
 });
 
 app.on('activate', async () => {
-  // macOS: 点击 Dock 图标时重新创建窗口（仅当应用未在退出过程中）
   if (!isQuitting && BrowserWindow.getAllWindows().length === 0) {
     const mainWindow = await createMainWindow();
     if (mainWindow) {
@@ -140,7 +121,7 @@ process.on('unhandledRejection', (reason) => {
   process.exit(1);
 });
 
-if (isWindows()) {
+if (platform.isWindows()) {
   process.on('SIGBREAK', () => {
     logInfo('📡 Received SIGBREAK, cleaning up...');
     performCleanup();

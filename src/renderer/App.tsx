@@ -6,43 +6,61 @@ import { UpdateNotification } from './components/UpdateNotification';
 import { useProcessor } from './hooks/useProcessor';
 import { useAppStore } from './hooks/useAppStore';
 import { AppError } from '../shared/types';
+import { createRendererLogger } from './utils/renderer-logger';
 import styles from './App.module.css';
 
+const logger = createRendererLogger('App');
+
+logger.info('App 组件开始加载');
+logger.debug('electronAPI 存在:', !!window.electronAPI);
+
 const App: React.FC = () => {
+  logger.debug('App 组件渲染中...');
+
   const { handleStart, handleCancel, handleOpenFile } = useProcessor();
-  const { phase, excelFile, imageSource, progress, current, total, result, error, setExcelValidated, setImageSourceValidated, canStartProcessing, reset } = useAppStore();
+  logger.debug('useProcessor 返回值:', { handleStart: !!handleStart, handleCancel: !!handleCancel });
+
+  const { phase, excelFile, imageSource, progress, current, total, result, error, setExcelValidated, setImageSourceValidated, setProgress, setResult, setError, canStartProcessing, reset } = useAppStore();
+  logger.debug('useAppStore 状态:', { phase, excelFile: excelFile?.path, imageSource: imageSource?.path });
 
   useEffect(() => {
+    logger.info('useEffect 执行 - 订阅事件');
+    logger.debug('订阅 progress, complete, error 事件');
+
     const unsubscribeProgress = window.electronAPI?.onProgress((data) => {
-      useAppStore.getState().setProgress(data.percent, data.current, data.total);
+      logger.debug('收到 progress 事件:', data);
+      setProgress(data.percent, data.current, data.total);
     });
 
     const unsubscribeComplete = window.electronAPI?.onComplete((data) => {
-      useAppStore.getState().setResult(data);
+      logger.info('收到 complete 事件:', data);
+      setResult(data);
     });
 
     const unsubscribeError = window.electronAPI?.onError((data) => {
+      logger.error('收到 error 事件:', data);
       const appError: AppError = {
         type: data.type as AppError['type'],
         message: data.message,
-        resolution: data.resolution
+        resolution: data.resolution,
       };
-      useAppStore.getState().setError(appError);
+      setError(appError);
     });
 
     return () => {
+      logger.info('useEffect cleanup - 取消订阅');
       unsubscribeProgress?.();
       unsubscribeComplete?.();
       unsubscribeError?.();
     };
-  }, []);
+  }, [setProgress, setResult, setError]);
 
   const handleOpenOutputFile = () => {
-    console.log('[App] handleOpenOutputFile called', { phase, result });
+    logger.debug('handleOpenOutputFile called', { phase, result });
     if (phase === 'COMPLETE' && result) {
-      console.log('[App] result.details:', result);
+      logger.debug('result.details', { result });
       if (!result.outputPath) {
-        console.error('[App] outputPath is missing in result:', result);
+        logger.error('outputPath is missing in result', { result });
         alert('输出文件路径无效，请尝试重新处理');
         return;
       }
@@ -53,8 +71,10 @@ const App: React.FC = () => {
   const canSelectExcel = phase !== 'PROCESSING';
   const canSelectImages = phase !== 'PROCESSING';
   const isReadyToProcess = canStartProcessing();
+  logger.debug('计算状态:', { canSelectExcel, canSelectImages, isReadyToProcess });
 
   if (phase === 'PROCESSING' || phase === 'COMPLETE' || phase === 'ERROR') {
+    logger.info('渲染 ProcessingPage (phase:', phase + ')');
     const processingState = phase === 'PROCESSING'
       ? { progress, current, total }
       : phase === 'COMPLETE'
@@ -85,6 +105,7 @@ const App: React.FC = () => {
     );
   }
 
+  logger.info('渲染 FilePicker 页面');
   return (
     <div className={styles.app}>
       <div className={styles.mainCard}>

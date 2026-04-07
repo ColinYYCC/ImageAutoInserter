@@ -11,6 +11,7 @@
 - WASM 驱动的 RAR 处理（无需外部 UnRAR 工具）
 - 统一的平台适配架构
 - 异步文件操作（不阻塞主线程）
+- Mac 安全书签机制（持久化文件夹访问权限）
 
 ## 技术栈
 
@@ -44,7 +45,9 @@ ImageAutoInserter/
 │   │       ├── async-file.ts       # 异步文件操作
 │   │       ├── async-logger.ts     # 异步日志系统
 │   │       ├── logging.ts          # 日志封装
-│   │       └── path-validator.ts   # 路径验证
+│   │       ├── path-validator.ts   # 路径验证
+│   │       ├── security-bookmark.ts # Mac 安全书签管理
+│   │       └── permissions.ts      # 权限处理
 │   ├── renderer/                # React 渲染进程
 │   │   ├── components/         # UI 组件
 │   │   ├── hooks/             # 状态管理
@@ -194,9 +197,8 @@ async-logger.ts
 | 启动进程 | 0-2% | Python 启动 + 模块导入 |
 | 加载图片 | 2-15% | 扫描 ZIP/RAR/文件夹 |
 | 解析Excel | 15-25% | 读取 Excel + 查找商品编码 |
-| 处理数据 | 25-70% | 匹配图片 |
-| 嵌入图片 | 70-90% | 插入图片到 Excel |
-| 保存文件 | 90-98% | 保存 + 高亮 |
+| 处理数据 | 25-92% | 匹配图片 + 嵌入图片 |
+| 保存文件 | 92-98% | 保存 + 高亮 |
 | 完成 | 98-100% | 完成 |
 
 ### 跨平台支持
@@ -211,6 +213,7 @@ async-logger.ts
 | 进程终止 | ✅ SIGTERM | ✅ taskkill | 平台适配 |
 | 路径处理 | ✅ `/` | ✅ `\\` + 长路径 | 自动适配 |
 | 日志系统 | ✅ 异步 | ✅ 异步 | 不阻塞主线程 |
+| 权限管理 | ✅ 安全书签 | ✅ 普通用户权限 | Mac 持久化授权 / Windows 无 UAC 弹窗 |
 
 ## 下载
 
@@ -229,6 +232,43 @@ async-logger.ts
 - Python 3.8+
 
 ## 更新日志
+
+### v1.1.1 (2026-04-06)
+
+#### 安全修复
+- 修复 npm 安全漏洞：升级 xlsx 到 0.20.3（修复 Prototype Pollution 和 ReDoS）
+- 升级 electron 到 41.1.0（修复 Use-after-free 漏洞）
+- 修复 lodash 和 @xmldom/xmldom 漏洞
+
+#### 代码质量改进
+- 添加 ESLint 和 Prettier 配置文件
+- 设置测试覆盖率阈值（80%）
+- 修复代码质量问题：将 print 改为 logger
+
+#### 文档完善
+- 添加 CONTRIBUTING.md（贡献指南）
+- 添加 CODE_OF_CONDUCT.md（行为准则）
+- 添加 LICENSE（ISC 开源许可证）
+
+### v1.1.0 (2026-04-06)
+
+#### 新功能
+- Mac 安全书签机制：持久化用户授权的文件夹访问权限，避免重复授权
+- 权限管理优化：统一 macOS 和 Windows 的权限处理逻辑
+
+#### Bug 修复
+- 修复 Mac 权限配置问题：移除 `entitlements.mac.plist` 中的硬编码路径
+- 修复 Windows UAC 弹窗：移除 `requireAdministrator`，改为普通用户权限
+
+#### 架构改进
+- 新增 `security-bookmark.ts`：Mac 安全书签管理器
+- 更新 `permissions.ts`：集成安全书签机制，改进文件访问权限检查
+- 更新 `file-handlers.ts`：启用 `securityScopedBookmarks`，自动保存书签
+- 更新 `main.ts`：启动时恢复书签，退出时清理访问权限
+
+#### 用户体验提升
+- Mac 用户：选择文件夹后权限被持久化保存，应用重启后自动恢复
+- Windows 用户：不再需要管理员权限，避免不必要的 UAC 弹窗
 
 ### v1.0.6 (2026-03-30)
 

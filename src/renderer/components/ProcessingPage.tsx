@@ -1,8 +1,11 @@
 import React, { memo, useState, useEffect, useRef } from 'react';
 import styles from './ProcessingPage.module.css';
 import { ProcessingResult, AppError } from '../../shared/types';
+import { createLogger } from '../../shared/logger';
 import { CheckCircleIcon, ErrorIcon } from './Icons';
 import Loader from './RobotLoader';
+
+const logger = createLogger('ProcessingPage');
 
 interface ProcessingPageProps {
   progress: number;
@@ -23,11 +26,14 @@ interface StageConfig {
 
 const STAGES: StageConfig[] = [
   { range: [0, 2], label: '启动进程', color: '#8B7355' },
-  { range: [2, 15], label: '加载图片', color: '#8B7355' },
-  { range: [15, 25], label: '解析Excel', color: '#9d8668' },
-  { range: [25, 70], label: '处理数据', color: '#A69076' },
-  { range: [70, 90], label: '嵌入图片', color: '#A69076' },
-  { range: [90, 98], label: '保存文件', color: '#6B8E23' },
+  { range: [2, 6], label: '扫描图片', color: '#8B7355' },
+  { range: [6, 15], label: '加载图片', color: '#9d8668' },
+  { range: [15, 20], label: '解析Excel', color: '#9d8668' },
+  { range: [20, 23], label: '配置列', color: '#A69076' },
+  { range: [23, 26], label: '预加载', color: '#A69076' },
+  { range: [26, 88], label: '嵌入图片', color: '#A69076' },
+  { range: [88, 92], label: '高亮标记', color: '#6B8E23' },
+  { range: [92, 98], label: '保存文件', color: '#6B8E23' },
   { range: [98, 100], label: '完成', color: '#2D7A3E' },
 ];
 
@@ -166,7 +172,7 @@ const ProcessingPage: React.FC<ProcessingPageProps> = memo(({
 
         <div className={styles.buttonGroup}>
           <button className={styles.buttonPrimary} onClick={() => {
-            console.log('[ProcessingPage] 打开文件按钮被点击', { onOpenFile: typeof onOpenFile });
+            logger.debug('打开文件按钮被点击', { onOpenFile: typeof onOpenFile });
             onOpenFile?.();
           }}>
             打开文件

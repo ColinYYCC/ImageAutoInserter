@@ -1,11 +1,8 @@
 import { useCallback, useRef } from 'react';
 import { useAppStore } from './useAppStore';
+import { createLogger } from '../../shared/logger';
 
-function debugLog(...args: unknown[]): void {
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[useProcessor]', ...args);
-  }
-}
+const logger = createLogger('useProcessor');
 
 export function useProcessor() {
   const phase = useAppStore((s) => s.phase);
@@ -53,21 +50,21 @@ export function useProcessor() {
       const newPhase = excelFile && imageSource ? 'READY' : 'IDLE';
       setPhase(newPhase);
     } catch (err) {
-      console.error('取消失败:', err);
+      logger.error('取消失败', { error: String(err) });
     }
   }, [setPhase]);
 
   const handleOpenFile = useCallback(async (filePath: string) => {
-    debugLog('handleOpenFile called with:', filePath);
+    logger.debug('handleOpenFile called', { filePath });
     try {
       const result = await window.electronAPI.openFile(filePath);
-      debugLog('openFile result:', result);
+      logger.debug('openFile result', { result });
       if (!result.success && result.error) {
-        debugLog('openFile error:', result.error);
+        logger.debug('openFile error', { error: result.error });
         alert(`打开文件失败: ${result.error}`);
       }
     } catch (err) {
-      console.error('打开文件失败:', err);
+      logger.error('打开文件失败', { error: String(err) });
       alert(`打开文件失败: ${err}`);
     }
   }, []);

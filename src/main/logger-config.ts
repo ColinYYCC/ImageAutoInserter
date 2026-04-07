@@ -18,13 +18,26 @@ export interface LogConfig {
   logDir: string;
 }
 
+function parseLogLevel(level: string | undefined): LogLevel {
+  if (!level) return LogLevel.INFO;
+  const upperLevel = level.toUpperCase();
+  switch (upperLevel) {
+    case 'DEBUG': return LogLevel.DEBUG;
+    case 'INFO': return LogLevel.INFO;
+    case 'WARN': return LogLevel.WARN;
+    case 'ERROR': return LogLevel.ERROR;
+    case 'OFF': return LogLevel.OFF;
+    default: return LogLevel.INFO;
+  }
+}
+
 export const DEFAULT_LOG_CONFIG: LogConfig = {
-  level: process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG,
-  enableFile: true,
-  enableConsole: process.env.NODE_ENV !== 'production',
-  maxFileSizeMB: 10,
-  maxFiles: 5,
-  logDir: 'logs',
+  level: parseLogLevel(process.env.LOG_LEVEL) || (process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG),
+  enableFile: process.env.LOG_ENABLE_FILE !== 'false',
+  enableConsole: process.env.LOG_ENABLE_CONSOLE !== 'false' && process.env.NODE_ENV !== 'production',
+  maxFileSizeMB: parseInt(process.env.LOG_MAX_FILE_SIZE_MB || '10', 10),
+  maxFiles: parseInt(process.env.LOG_MAX_FILES || '5', 10),
+  logDir: process.env.LOG_DIR || 'logs',
 };
 
 const LOG_LEVEL_NAMES = ['DEBUG', 'INFO', 'WARN', 'ERROR'];

@@ -201,6 +201,48 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   closeErrorReport: (reportId: string, exported: boolean) =>
     ipcRenderer.invoke('close-error-report', { reportId, exported }),
+
+  getLogs: (filter: Record<string, unknown>) =>
+    ipcRenderer.invoke('log:query', filter),
+
+  getRecentLogs: (count?: number) =>
+    ipcRenderer.invoke('log:getRecent', count),
+
+  searchLogs: (keyword: string) =>
+    ipcRenderer.invoke('log:search', keyword),
+
+  getLogStats: () =>
+    ipcRenderer.invoke('log:getStats'),
+
+  getLogModules: () =>
+    ipcRenderer.invoke('log:getModules'),
+
+  analyzeLogs: (startTime?: number, endTime?: number) =>
+    ipcRenderer.invoke('log:analyze', startTime, endTime),
+
+  getErrorTrends: (startTime: number, endTime: number) =>
+    ipcRenderer.invoke('log:getErrorTrends', startTime, endTime),
+
+  detectLogAnomalies: (startTime?: number, endTime?: number) =>
+    ipcRenderer.invoke('log:detectAnomalies', startTime, endTime),
+
+  getLogFiles: () =>
+    ipcRenderer.invoke('log:getFiles'),
+
+  deleteOldLogs: (daysToKeep: number) =>
+    ipcRenderer.invoke('log:deleteOld', daysToKeep),
+
+  setLogLevel: (level: number) =>
+    ipcRenderer.invoke('log:setLevel', level),
+
+  getLogLevel: () =>
+    ipcRenderer.invoke('log:getLevel'),
+
+  flushLogs: () =>
+    ipcRenderer.invoke('log:flush'),
+
+  getLogConfig: () =>
+    ipcRenderer.invoke('log:getConfig'),
 });
 
 declare global {
@@ -231,6 +273,20 @@ declare global {
       getErrorReport: (reportId: string) => Promise<ErrorReportData>;
       exportErrorReport: (reportId: string) => Promise<ExportErrorReportData>;
       closeErrorReport: (reportId: string, exported: boolean) => Promise<CloseErrorReportData>;
+      getLogs: (filter: Record<string, unknown>) => Promise<{ logs: unknown[]; total: number }>;
+      getRecentLogs: (count?: number) => Promise<unknown[]>;
+      searchLogs: (keyword: string) => Promise<unknown[]>;
+      getLogStats: () => Promise<unknown>;
+      getLogModules: () => Promise<{ modules: string[] }>;
+      analyzeLogs: (startTime?: number, endTime?: number) => Promise<unknown>;
+      getErrorTrends: (startTime: number, endTime: number) => Promise<unknown[]>;
+      detectLogAnomalies: (startTime?: number, endTime?: number) => Promise<unknown[]>;
+      getLogFiles: () => Promise<unknown[]>;
+      deleteOldLogs: (daysToKeep: number) => Promise<number>;
+      setLogLevel: (level: number) => Promise<void>;
+      getLogLevel: () => Promise<number>;
+      flushLogs: () => Promise<void>;
+      getLogConfig: () => Promise<{ minLevel: number }>;
     };
   }
 }

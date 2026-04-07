@@ -4,7 +4,7 @@ import { spawn, ChildProcess } from 'child_process';
 import { logInfo, logWarn, logError } from '../logger';
 import { safeWriteFile } from '../utils/async-file';
 import { getVitePortCachePath, getResourcesPath, getCacheDirectory } from '../path-config';
-import { isWindows } from '../platform';
+import { platform } from '../../core/platform';
 
 const VITE_STARTUP_TIMEOUT = 10000;
 const PORT_CHECK_TIMEOUT = 200;
@@ -339,7 +339,7 @@ export function cleanupViteProcess(force = false): void {
     logInfo(`🧹 Stopping Vite server (PID: ${viteProcess.pid}, owned by this instance)...`);
 
     const killProcess = (signal: NodeJS.Signals) => {
-      if (isWindows()) {
+      if (platform.isWindows()) {
         try {
           const { execFileSync } = require('child_process');
           execFileSync('taskkill', ['/pid', String(viteProcess!.pid), '/T', '/F'], { encoding: 'utf-8' });

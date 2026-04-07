@@ -3,6 +3,22 @@
  * 测试覆盖：重试逻辑、熔断器、错误恢复等
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Mock electron app
+vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn(() => '/tmp/test-user-data'),
+    isPackaged: false,
+  },
+}));
+
+// Mock logger to prevent app.getPath calls
+vi.mock('../../src/main/logger', () => ({
+  logInfo: vi.fn(),
+  logWarn: vi.fn(),
+  logError: vi.fn(),
+}));
+
 import {
   withRetry,
   isRetryableError,

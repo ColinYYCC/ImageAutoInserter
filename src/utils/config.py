@@ -52,9 +52,6 @@ class SecurityConfig:
     ALLOWED_BASE_DIRS: List[str] = field(default_factory=list)
     BLOCKED_PATTERNS: List[str] = field(default_factory=lambda: [
         r'\.\.',
-        r'^/etc',
-        r'^/proc',
-        r'^/sys',
         r'C:\\Windows',
         r'C:\\Program Files',
     ])
@@ -71,11 +68,6 @@ class AppConfig:
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
     cache: CacheConfig = field(default_factory=CacheConfig)
     security: SecurityConfig = field(default_factory=SecurityConfig)
-
-
-def get_config() -> AppConfig:
-    """获取配置单例"""
-    return config
 
 
 config = AppConfig()
