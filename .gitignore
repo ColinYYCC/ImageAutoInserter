@@ -1,0 +1,144 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+release/
+build/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sample data (large files)
+Sample/
+*.zip
+*.rar
+*.7z
+
+# Logs
+*.log
+logs/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Cache
+.cache/
+*.cache
+
+# Electron
+app/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Development artifacts
+.coverage
+.packignore
+skills-lock.json
+test-archives.js
+.python-version
+
+# Trae AI specific (development only)
+.trae/
+.self-improving/
+.organized/
+.learnings/
+
+# Version management backups (development only)
+.version-backups/
+
+# Internal development reports
+CODE_ISSUES.md
+spec/
+
+# Project management (internal)
+project/
+file_organizer/
+
+# Documentation (all docs are development-only)
+docs/
+
+# Scripts (development only)
+scripts/generate-icons-from-source.js
+scripts/generate-icons.js
+install-ecc.sh
+install-superpowers.sh
+organizer
+
+# Design reference images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.psd
+*.ai
+*.sketch
+
+# Source fonts (use public/ subset instead)
+assets/fonts/
+
+# Internal debug scripts and guides
+scripts/PROCESS_CLEANUP_TEST_GUIDE.md
+scripts/test-process-cleanup.bat
+scripts/test-process-cleanup.sh
+scripts/cleanup-dmg-mounts.sh
+scripts/diagnose-app.sh
+scripts/diagnose-packaged.js
+
+# Legacy/Complete guides
+PICTURE_VARIANT_COMPLETE_GUIDE.md
+INTEGRATION_REPORT.md
+DEPLOY.md
+CHANGELOG.md
+CHANGES.md
+
+# Development-only test configs and dependencies
+playwright.config.ts
+playwright.electron.config.ts
+requirements-dev.txt
+vitest.config.ts
+
+# Tests (development only)
+tests/
+
+# CI/CD (development only)
+.github/
+
+# Broken utility scripts (source dependency removed)
+scripts/regenerate_font_subset.py
+
+# Source code temp/test files
+src/core/core_temp
+src/main/main.minimal.ts
+src/renderer/test.html
+src/renderer/components/RobotLoaderTest.tsx
+src/shared/types.js
+src/shared/types.d.ts

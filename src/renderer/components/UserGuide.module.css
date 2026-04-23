@@ -1,0 +1,139 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.highlight {
+  position: absolute;
+  border: 3px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  transition: all 0.3s ease;
+}
+
+.tooltip {
+  position: fixed;
+  width: 320px;
+  background: var(--color-bg-input);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+  z-index: 10000;
+  overflow: hidden;
+  font-family: var(--font-family-base);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.stepIndicator {
+  font-size: var(--font-size-xs);
+  opacity: 0.9;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.closeButton:hover {
+  opacity: 1;
+}
+
+.title {
+  margin: 0;
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.content {
+  margin: 0;
+  padding: 0 var(--space-md) var(--space-md);
+  font-size: var(--font-size-base);
+  line-height: var(--leading-loose);
+  color: var(--color-text-secondary);
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-bg-hover);
+}
+
+.dots {
+  display: flex;
+  gap: 6px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+  transition: all 0.2s;
+}
+
+.activeDot {
+  background: var(--color-primary);
+  width: 16px;
+  border-radius: 4px;
+}
+
+.buttons {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.prevButton,
+.nextButton,
+.completeButton {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.prevButton {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.prevButton:hover {
+  background: var(--color-bg-hover);
+}
+
+.nextButton,
+.completeButton {
+  background: var(--color-primary);
+  border: none;
+  color: var(--color-text-inverse);
+}
+
+.nextButton:hover,
+.completeButton:hover {
+  background: var(--color-primary-hover);
+}

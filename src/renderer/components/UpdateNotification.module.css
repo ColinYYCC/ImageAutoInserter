@@ -1,0 +1,458 @@
+/* ===== Update Notification - Smart Hint Mode ===== */
+
+.notificationContainer {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: 90%;
+  max-width: 560px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.notificationCard {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.checkingCard {
+  padding: var(--space-sm) 20px;
+}
+
+.checkingContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-primary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.checkingText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.availableCard {
+  padding: 14px var(--space-md);
+  background: linear-gradient(135deg, #FAFAF9 0%, #F0EFED 100%);
+  border-left: 4px solid var(--color-primary);
+}
+
+.availableContent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.iconWrapper {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-inverse);
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  line-height: var(--leading-comfortable);
+}
+
+.subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-snug);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.textButton {
+  padding: 6px var(--space-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.textButton:hover {
+  color: var(--color-text-primary);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.primaryButton {
+  padding: 6px 14px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-inverse);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.primaryButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 115, 85, 0.3);
+}
+
+.closeButton {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.closeButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.closeButton:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-secondary);
+}
+
+.detailsCard {
+  padding: 20px;
+  max-width: 400px;
+}
+
+.detailsHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: var(--space-md);
+}
+
+.iconWrapperLarge {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.iconLarge {
+  width: 24px;
+  height: 24px;
+  color: var(--color-text-inverse);
+}
+
+.detailsTitle {
+  flex: 1;
+}
+
+.detailsTitle h4 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 4px 0;
+}
+
+.detailsTitle p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.releaseNotes {
+  margin-bottom: var(--space-md);
+}
+
+.releaseNotes h5 {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.notesContent {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  line-height: var(--leading-loose);
+  background: var(--color-bg-input);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  max-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+.detailsActions {
+  display: flex;
+  gap: 10px;
+}
+
+.secondaryButton {
+  flex: 1;
+  padding: 10px var(--space-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-input);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondaryButton:hover {
+  background: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.primaryButtonLarge {
+  flex: 2;
+  padding: 10px var(--space-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-inverse);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.primaryButtonLarge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 115, 85, 0.3);
+}
+
+.downloadingCard {
+  padding: var(--space-md) 20px;
+}
+
+.downloadingContent {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.progressInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progressText {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.progressPercent {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+.progressBar {
+  width: 100%;
+  height: 6px;
+  background: var(--color-bg-input);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.downloadedCard {
+  composes: availableCard;
+  border-left-color: var(--color-success);
+}
+
+.downloadedContent {
+  composes: availableContent;
+}
+
+.successIcon {
+  background: linear-gradient(135deg, var(--color-success), var(--color-success-light));
+}
+
+.successButton {
+  background: linear-gradient(135deg, var(--color-success), var(--color-success-light));
+}
+
+.successButton:hover {
+  box-shadow: 0 4px 12px rgba(45, 122, 62, 0.3);
+}
+
+.errorCard {
+  composes: availableCard;
+  border-left-color: var(--color-error);
+}
+
+.errorContent {
+  composes: availableContent;
+}
+
+.errorIconSmall {
+  width: 18px;
+  height: 18px;
+  color: var(--color-error);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.errorIconSmall svg {
+  width: 18px;
+  height: 18px;
+}
+
+.errorText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  flex: 1;
+}
+
+.installingCard {
+  padding: 14px var(--space-md);
+  background: linear-gradient(135deg, #FAFAF9 0%, #F0EFED 100%);
+  border-left: 4px solid var(--color-primary);
+}
+
+.installingContent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+@media (max-width: 640px) {
+  .notificationContainer {
+    top: var(--space-sm);
+    width: calc(100% - 24px);
+    max-width: none;
+  }
+
+  .availableContent {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .message {
+    order: 2;
+    width: calc(100% - 48px);
+  }
+
+  .actions {
+    order: 3;
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
+
+  .detailsCard {
+    padding: var(--space-md);
+  }
+
+  .detailsActions {
+    flex-direction: column;
+  }
+
+  .primaryButtonLarge,
+  .secondaryButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 375px) {
+  .checkingCard,
+  .availableCard,
+  .downloadingCard {
+    padding: var(--space-sm);
+  }
+
+  .title {
+    font-size: var(--font-size-sm);
+  }
+
+  .subtitle {
+    font-size: var(--font-size-11px);
+  }
+
+  .primaryButton,
+  .textButton {
+    padding: 5px 10px;
+    font-size: var(--font-size-11px);
+  }
+}

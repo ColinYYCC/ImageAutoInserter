@@ -1,0 +1,181 @@
+{
+  "name": "imageautoinserter",
+  "version": "1.0.0",
+  "description": "**图片自动插入工具** - 根据商品编码自动将图片嵌入 Excel 表格",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev": "node scripts/build.js copy-python && cross-env NODE_ENV=development electron .",
+    "dev:vite-only": "vite --config vite.renderer.config.ts",
+    "dev:electron-only": "cross-env NODE_ENV=development ts-node src/main/main.ts",
+    "electron": "node scripts/build.js copy-python && cross-env NODE_ENV=development electron .",
+    "watch:main": "vite build --config vite.main.config.ts --watch",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer && node scripts/build.js copy-python && node scripts/build.js copy-fonts && node scripts/build.js copy-node-modules",
+    "build:main": "cross-env NODE_ENV=production vite build --config vite.main.config.ts",
+    "build:preload": "cross-env NODE_ENV=production vite build --config vite.preload.config.ts",
+    "build:renderer": "cross-env NODE_ENV=production vite build --config vite.renderer.config.ts",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:run": "vitest run",
+    "dist": "bash scripts/cleanup-dmg-mounts.sh && npm run build && electron-builder --mac --win && node scripts/build.js cleanup-release && bash scripts/cleanup-dmg-mounts.sh",
+    "dist:win": "npm run build && scripts\\compile-python-nuitka.bat && electron-builder --win && node scripts/build.js cleanup-release",
+    "dist:mac": "bash scripts/cleanup-dmg-mounts.sh && npm run build && electron-builder --mac && node scripts/build.js cleanup-release && bash scripts/cleanup-dmg-mounts.sh",
+    "generate-icons": "node scripts/generate-icons.js",
+    "clean": "node scripts/build.js clean-dist"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "@types/adm-zip": "^0.5.7",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/styled-components": "^5.1.36",
+    "@vitejs/plugin-react": "^4.2.0",
+    "@vitest/coverage-v8": "^1.1.0",
+    "@vitest/ui": "^1.1.0",
+    "concurrently": "^8.2.0",
+    "cross-env": "^7.0.3",
+    "electron": "^41.0.3",
+    "electron-builder": "^26.8.1",
+    "electron-reload": "^2.0.0-alpha.1",
+    "jsdom": "^23.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.0",
+    "vitest": "^1.1.0",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "7zip-min": "^3.0.1",
+    "adm-zip": "^0.5.16",
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.8.3",
+    "exceljs": "^4.4.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "styled-components": "^6.3.11",
+    "unrar-promise": "^3.1.0",
+    "zustand": "^5.0.12"
+  },
+  "build": {
+    "appId": "com.imageautoinserter.app",
+    "productName": "ImageAutoInserter",
+    "directories": {
+      "output": "release/${version}",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/main/**/*",
+      "dist/renderer/**/*",
+      "package.json",
+      "node_modules/electron-store/**/*",
+      "!**/*.map",
+      "!**/*.ts",
+      "!**/__pycache__/**",
+      "!**/*.pyc",
+      "!**/*.pyo",
+      "!**/*.psd",
+      "!**/*.ai",
+      "!**/*.sketch",
+      "!**/*.md",
+      "!**/README*",
+      "!**/CHANGELOG*",
+      "!**/LICENSE*",
+      "!**/*.test.*",
+      "!**/*.spec.*",
+      "!**/tests/**",
+      "!**/.trae/**",
+      "!**/Sample/**",
+      "!**/.git/**",
+      "!**/.github/**",
+      "!**/docs/**",
+      "!**/scripts/**",
+      "!**/tsconfig.json",
+      "!**/package-lock.json",
+      "!**/*.d.ts",
+      "!**/*.nsh",
+      "!**/node_modules/.cache/**",
+      "!**/node_modules/*/LICENSE*",
+      "!**/node_modules/*/README*",
+      "!**/node_modules/*/CHANGELOG*",
+      "!**/node_modules/*/.github/**",
+      "!**/node_modules/*/docs/**",
+      "!**/node_modules/*/test/**",
+      "!**/node_modules/*/tests/**",
+      "!**/node_modules/*/__tests__/**",
+      "!**/node_modules/*/src/**",
+      "!**/node_modules/*/tsconfig.json",
+      "!**/node_modules/*/.eslintrc*",
+      "!**/node_modules/*/.prettierrc*"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/python",
+        "to": "python",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**",
+          "!**/*.pyc",
+          "!**/*.pyo",
+          "!**/*.build/**"
+        ]
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "dist/main/node_modules/node-unrar-js/**/*",
+      "dist/main/node_modules/7zip-bin/**/*",
+      "dist/renderer/assets/fonts/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "icon": "build/icons/icon.icns"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker",
+      "icon": "build/icons/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": true,
+      "installerIcon": "build/icons/icon.ico",
+      "uninstallerIcon": "build/icons/icon.ico",
+      "include": "build/installer.nsh",
+      "displayLanguageSelector": false
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "ColinYYCC",
+      "repo": "ImageAutoInserter",
+      "releaseType": "release"
+    }
+  }
+}

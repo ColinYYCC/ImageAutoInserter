@@ -1,0 +1,204 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-family: inherit;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.filterSelect {
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  outline: none;
+
+  &:focus {
+    border-color: var(--color-border-focus);
+  }
+}
+
+.searchInput {
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  width: 160px;
+  outline: none;
+
+  &:focus {
+    border-color: var(--color-border-focus);
+  }
+}
+
+.actionButton {
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  background: var(--color-bg-input);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-focus);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.dangerButton {
+  composes: actionButton;
+  color: var(--color-error);
+  border-color: var(--color-error);
+
+  &:hover {
+    background: var(--color-error-bg);
+  }
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xs) var(--space-md);
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: var(--font-size-11px);
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.statDotDebug { background: var(--color-text-tertiary); }
+.statDotInfo { background: var(--color-info); }
+.statDotWarn { background: var(--color-warning); }
+.statDotError { background: var(--color-error); }
+
+.logList {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: var(--space-xs) 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-11px);
+  line-height: var(--leading-loose);
+}
+
+.logEntry {
+  padding: 1px var(--space-md);
+  border-bottom: 1px solid transparent;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  transition: background var(--duration-fast);
+
+  &:hover {
+    background: var(--color-bg-hover);
+  }
+}
+
+.logEntryError {
+  background: var(--color-error-bg);
+}
+
+.logEntryWarn {
+  background: rgba(183, 121, 31, 0.06);
+}
+
+.logTimestamp {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  font-size: var(--font-size-10px);
+  min-width: 80px;
+}
+
+.logLevel {
+  flex-shrink: 0;
+  font-weight: var(--font-weight-semibold);
+  min-width: 36px;
+  text-align: center;
+  font-size: var(--font-size-10px);
+}
+
+.levelDebug { color: var(--color-text-tertiary); }
+.levelInfo { color: var(--color-info); }
+.levelWarn { color: var(--color-warning); }
+.levelError { color: var(--color-error); }
+
+.logModule {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+  font-size: var(--font-size-10px);
+  min-width: 40px;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logMessage {
+  color: var(--color-text-primary);
+  word-break: break-all;
+  flex: 1;
+  min-width: 0;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+}

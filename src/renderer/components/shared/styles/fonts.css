@@ -1,0 +1,31 @@
+/* ===== Custom Fonts ===== */
+
+@font-face {
+  font-family: 'NotoSansSC';
+  src: url('/assets/fonts/NotoSansSC-subset.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DIN Alternate';
+  src: url('/assets/fonts/DINAlternate-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DIN Alternate Fallback';
+  src: local('Bahnschrift'),
+       local('Segoe UI');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-family-english: 'DIN Alternate', 'DIN Alternate Fallback', sans-serif;
+  --font-family-chinese: 'NotoSansSC', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}

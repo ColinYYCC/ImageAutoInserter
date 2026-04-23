@@ -1,0 +1,22 @@
+# ImageAutoInserter Dependencies
+# Python 3.11+ required
+
+# GUI Framework
+PyQt6>=6.4.0
+
+# Excel Processing
+openpyxl>=3.0.10
+pandas>=1.5.0
+
+# Image Processing
+Pillow>=9.0.0
+
+# HTTP Requests (for update checking)
+requests>=2.28.0
+
+# Archive Processing
+rarfile>=4.0
+py7zr>=0.20.0
+
+# Type Checking
+typing-extensions>=4.0.0
